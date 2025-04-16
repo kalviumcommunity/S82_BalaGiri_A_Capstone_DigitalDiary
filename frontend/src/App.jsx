@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookHeart, Moon, Sun, User } from 'lucide-react';
+import { BookHeart, Moon, Sun, Mountain as Mountains, User } from 'lucide-react';
 import Login from './components/Login';
 import Signup from './components/Signup';
 
@@ -16,6 +16,8 @@ function App() {
       mountain1: 'bg-[#1B2942]',
       mountain2: 'bg-[#243656]',
       mountain3: 'bg-[#2C4870]',
+      button: 'backdrop-blur-lg bg-white/20 border-2 border-white/30 text-[#1B2942] hover:bg-white/30',
+      buttonOutline: 'backdrop-blur-lg bg-white/20 border-2 border-white/30 text-[#1B2942] hover:bg-white/30',
     },
     light: {
       background: 'from-[#B8D9F2] via-[#7EB6E6] to-[#4B92D4]',
@@ -24,6 +26,8 @@ function App() {
       mountain1: 'bg-[#7EB6E6]',
       mountain2: 'bg-[#4B92D4]',
       mountain3: 'bg-[#2C4870]',
+      button: 'backdrop-blur-lg bg-white/20 border-2 border-white/30 text-white hover:bg-white/30',
+      buttonOutline: 'backdrop-blur-lg bg-white/20 border-2 border-white/30 text-white hover:bg-white/30',
     },
   };
 
@@ -61,7 +65,19 @@ function App() {
 
       {/* Hero Section */}
       <div className="relative min-h-screen">
-        {/* Twinkle Stars */}
+        {/* Moon/Sun */}
+        <div className="absolute top-24 right-32">
+          <div className="relative">
+            {isDark ? (
+              <Moon className="w-32 h-32 text-[#E1E7FF]" />
+            ) : (
+              <Sun className="w-32 h-32 text-white" />
+            )}
+            <div className={`absolute inset-0 w-32 h-32 rounded-full blur-xl opacity-20 ${isDark ? 'bg-[#E1E7FF]' : 'bg-white'}`} />
+          </div>
+        </div>
+
+        {/* Stars */}
         {[...Array(100)].map((_, i) => (
           <div
             key={i}
@@ -77,6 +93,15 @@ function App() {
           />
         ))}
 
+        {/* Mountains */}
+        <div className="absolute bottom-0 w-full">
+          <div className="relative h-96">
+            <div className={`absolute bottom-0 w-full h-64 ${currentTheme.mountain1} transform -skew-y-6`} />
+            <div className={`absolute bottom-0 w-full h-72 ${currentTheme.mountain2} transform skew-y-3`} />
+            <div className={`absolute bottom-0 w-full h-80 ${currentTheme.mountain3} transform -skew-y-3`} />
+          </div>
+        </div>
+
         {/* Hero Content */}
         <div className="relative z-10 text-center px-4 pt-48">
           <h1 className={`text-6xl font-bold mb-6 ${currentTheme.text}`}>Welcome to Your Digital Diary</h1>
@@ -87,25 +112,14 @@ function App() {
           <div className="flex justify-center space-x-6">
             <button
               onClick={() => setShowLogin(true)}
-              className={`backdrop-blur-md bg-white/10 border border-white/20 ${currentTheme.text} px-8 py-3 rounded-full font-semibold transition-all flex items-center space-x-2 shadow-lg hover:bg-white/20`}
+              className={`${currentTheme.button} px-8 py-3 rounded-full font-semibold transition-colors flex items-center space-x-2 shadow-lg`}
             >
               <User className="w-5 h-5" />
               <span>Get Started</span>
             </button>
-            <button
-              className={`backdrop-blur-md bg-white/10 border border-white/20 ${currentTheme.text} px-8 py-3 rounded-full font-semibold transition-all shadow-lg hover:bg-white/20`}
-            >
+            <button className={`border-2 px-8 py-3 rounded-full font-semibold transition-colors shadow-lg ${currentTheme.buttonOutline}`}>
               Learn More
             </button>
-          </div>
-        </div>
-
-        {/* Mountains */}
-        <div className="absolute bottom-0 w-full">
-          <div className="relative h-96">
-            <div className={`absolute bottom-0 w-full h-64 ${currentTheme.mountain1} transform -skew-y-6`} />
-            <div className={`absolute bottom-0 w-full h-72 ${currentTheme.mountain2} transform skew-y-3`} />
-            <div className={`absolute bottom-0 w-full h-80 ${currentTheme.mountain3} transform -skew-y-3`} />
           </div>
         </div>
       </div>
