@@ -1,5 +1,12 @@
 # 📖 Digital Diary Project  
-A **smart & secure** digital diary that allows users to store **text, images, and audio** with **encryption and calendar-based retrieval**.  
+A **smart & secure** digital diary that allows users to store **text, images, and audio** with **encryption and calendar-based retrieval**.
+To build a responsive web application that allows users to:
+✅ Record daily memories in text, image, or audio format
+✅ Access their diary anytime through a calendar-based interface
+✅ Ensure privacy and security with user authentication
+✅ Store entries securely in the cloud
+
+
 
 ## 🚀 Features  
 ✅ Secure **AES-256 encryption** for text, images & audio  
