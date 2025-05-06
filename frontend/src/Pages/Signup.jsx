@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // ✅ Import navigate
+import { useNavigate } from 'react-router-dom'; 
 
 const Signup = ({ onClose, switchToLogin }) => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate(); // ✅ Create navigate instance
+  const navigate = useNavigate(); 
 
   const handleRegister = async () => {
     try {
@@ -22,9 +22,9 @@ const Signup = ({ onClose, switchToLogin }) => {
 
       if (res.ok) {
         alert("User registered successfully");
-        localStorage.setItem("token", data.token || "dummy-token"); // Optional: store token
-        onClose(); // Optional: if you're using modal
-        navigate('/diary'); // ✅ Navigate to DiaryPage
+        localStorage.setItem("token", data.token || "dummy-token"); 
+        onClose();
+        navigate('/diary');
       } else {
         alert(data.message || "Registration failed");
       }

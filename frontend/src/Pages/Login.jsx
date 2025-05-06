@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 const Login = ({ onClose, switchToSignup }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate(); // For navigation
+  const navigate = useNavigate(); 
 
   const handleLogin = async () => {
     try {
@@ -19,9 +19,9 @@ const Login = ({ onClose, switchToSignup }) => {
   
       if (res.ok) {
         alert("Login successful!");
-        localStorage.setItem("token", data.token); // if you send token from backend
-        navigate("/diary"); // Navigate after login
-        onClose(); // Optional if modal
+        localStorage.setItem("token", data.token);
+        navigate("/diary"); 
+        onClose(); 
       } else {
         alert(data.message || "Login failed");
       }

@@ -38,7 +38,7 @@ function App() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-b ${currentTheme.background} ${currentTheme.text} overflow-hidden`}>
-      {/* Navigation (hide on /diary if needed) */}
+  
       {location.pathname !== '/diary' && (
         <nav className="absolute top-0 w-full p-4 sm:p-6 z-50">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -65,7 +65,7 @@ function App() {
       <Routes>
         <Route path="/" element={
           <div className="relative min-h-screen">
-            {/* Moon/Sun Icon */}
+          
             <div className="absolute top-20 right-6 sm:top-24 sm:right-32 z-10">
               <div className="relative w-24 h-24 sm:w-32 sm:h-32">
                 {isDark ? (
@@ -77,7 +77,6 @@ function App() {
               </div>
             </div>
 
-            {/* Stars */}
             {[...Array(100)].map((_, i) => (
               <div
                 key={i}
@@ -93,7 +92,6 @@ function App() {
               />
             ))}
 
-            {/* Hero Content */}
             <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
               <div className="text-center max-w-3xl">
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6">
@@ -118,7 +116,7 @@ function App() {
               </div>
             </div>
 
-            {/* Mountains */}
+          
             <div className="absolute bottom-0 w-full">
               <div className="relative h-60 sm:h-96">
                 <div className={`absolute bottom-0 w-full h-40 sm:h-64 ${currentTheme.mountain1} transform -skew-y-6`} />
@@ -132,7 +130,6 @@ function App() {
         <Route path="/diary" element={<DiaryPage />} />
       </Routes>
 
-      {/* Login & Signup Modals */}
       {showLogin && (
         <Login
           onClose={() => setShowLogin(false)}

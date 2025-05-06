@@ -31,10 +31,9 @@ function DiaryPage({ currentTheme }) {
   
   
   const { text = 'text-black', subtext = 'text-gray-500', button = 'bg-blue-500' } = currentTheme || {};
-  const bgOverlay = 'bg-white/80'; // Define your background overlay here
-  const bgOverlayHover = 'hover:bg-white/90'; // Hover effect
-  const borderColor = 'border-slate-200'; // Define your border color
-
+  const bgOverlay = 'bg-white/80'; 
+  const bgOverlayHover = 'hover:bg-white/90';  
+  const borderColor = 'border-slate-200'; 
   return (
     <div className="pt-24 px-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
