@@ -10,8 +10,7 @@ function LandingPage({ isDark, setIsDark, currentTheme }) {
 
   return (
     <div className={`min-h-screen bg-gradient-to-b ${currentTheme.background} text-white overflow-hidden`}>
-      {/* Navigation */}
-      <nav className="absolute top-0 w-full p-6 z-50">
+       <nav className="absolute top-0 w-full p-6 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <BookHeart className={`w-8 h-8 ${currentTheme.text}`} />
@@ -38,9 +37,7 @@ function LandingPage({ isDark, setIsDark, currentTheme }) {
         </div>
       </nav>
 
-      {/* Hero Section */}
       <div className="relative min-h-screen">
-        {/* Moon/Sun */}
         <div className="absolute top-24 right-32">
           <div className="relative">
             {isDark ? (
@@ -52,7 +49,6 @@ function LandingPage({ isDark, setIsDark, currentTheme }) {
           </div>
         </div>
 
-        {/* Stars */}
         {[...Array(100)].map((_, i) => (
           <div
             key={i}
@@ -67,8 +63,6 @@ function LandingPage({ isDark, setIsDark, currentTheme }) {
             }}
           />
         ))}
-
-        {/* Mountains */}
         <div className="absolute bottom-0 w-full">
           <div className="relative h-96">
             <div className={`absolute bottom-0 w-full h-64 ${currentTheme.mountain1} transform -skew-y-6`} />
@@ -98,8 +92,6 @@ function LandingPage({ isDark, setIsDark, currentTheme }) {
           </div>
         </div>
       </div>
-
-      {/* Login & Signup Modals */}
       {showLogin && (
         <Login
           onClose={() => setShowLogin(false)}
