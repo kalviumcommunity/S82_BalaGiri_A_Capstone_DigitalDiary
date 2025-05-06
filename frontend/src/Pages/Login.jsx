@@ -1,9 +1,11 @@
+import { useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
 const Login = ({ onClose, switchToSignup }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate(); // For navigation
 
   const handleLogin = async () => {
     try {
@@ -12,12 +14,14 @@ const Login = ({ onClose, switchToSignup }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       });
-
+  
       const data = await res.json();
-
+  
       if (res.ok) {
         alert("Login successful!");
-        onClose(); 
+        localStorage.setItem("token", data.token); // if you send token from backend
+        navigate("/diary"); // Navigate after login
+        onClose(); // Optional if modal
       } else {
         alert(data.message || "Login failed");
       }
@@ -25,13 +29,7 @@ const Login = ({ onClose, switchToSignup }) => {
       console.error("Login error:", error);
       alert("Something went wrong");
     }
-    if (res.ok) {
-      localStorage.setItem("token", data.token);
-      onClose();
-      window.location.href = "/diary"; 
-    }
   };
-  
   
 
   return (

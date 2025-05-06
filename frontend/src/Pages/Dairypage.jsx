@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PenSquare, Calendar, Search } from 'lucide-react';
 
-// Temporary mock data
+// Sample mock entries
 const mockEntries = [
   {
     id: 1,
@@ -26,17 +26,25 @@ const mockEntries = [
   }
 ];
 
-// Later delete
-
 function DiaryPage({ currentTheme }) {
   const [searchTerm, setSearchTerm] = useState('');
+  
+  
+  const { text = 'text-black', subtext = 'text-gray-500', button = 'bg-blue-500' } = currentTheme || {};
+  const bgOverlay = 'bg-white/80'; // Define your background overlay here
+  const bgOverlayHover = 'hover:bg-white/90'; // Hover effect
+  const borderColor = 'border-slate-200'; // Define your border color
 
   return (
     <div className="pt-24 px-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
-        <h1 className={`text-4xl font-bold ${currentTheme.text}`}>My Diary</h1>
+      <h1 className={`text-4xl font-bold ${currentTheme?.mode === 'dark' ? 'text-black' : 'text-white'}`}>
+  My Diary
+</h1>
+
+        
         <button
-          className={`${currentTheme.button} px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2`}
+          className={`${button} px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2`}
         >
           <PenSquare className="w-5 h-5" />
           <span>New Entry</span>
@@ -45,13 +53,13 @@ function DiaryPage({ currentTheme }) {
 
       <div className="mb-8">
         <div className="relative">
-          <Search className={`absolute left-4 top-3 w-5 h-5 ${currentTheme.subtext}`} />
+          <Search className={`absolute left-4 top-3 w-5 h-5 ${subtext}`} />
           <input
             type="text"
             placeholder="Search your entries..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className={`w-full pl-12 pr-4 py-3 rounded-lg bg-white/10 backdrop-blur-md ${currentTheme.text} placeholder:${currentTheme.subtext} focus:outline-none focus:ring-2 focus:ring-white/20`}
+            className={`w-full pl-12 pr-4 py-3 rounded-lg ${bgOverlay} backdrop-blur-md ${text} placeholder:${subtext} focus:outline-none focus:ring-2 focus:ring-white/30`}
           />
         </div>
       </div>
@@ -60,18 +68,18 @@ function DiaryPage({ currentTheme }) {
         {mockEntries.map((entry) => (
           <div
             key={entry.id}
-            className="bg-white/10 backdrop-blur-md rounded-lg p-6 hover:bg-white/15 transition-colors cursor-pointer"
+            className={`${bgOverlay} backdrop-blur-md rounded-lg p-6 ${bgOverlayHover} transition-colors cursor-pointer border ${borderColor}`}
           >
             <div className="flex justify-between items-start mb-4">
-              <h2 className={`text-2xl font-semibold ${currentTheme.text}`}>{entry.title}</h2>
-              <div className="flex items-center space-x-2">
-                <Calendar className={`w-4 h-4 ${currentTheme.subtext}`} />
-                <span className={currentTheme.subtext}>{entry.date}</span>
+              <h2 className={`text-2xl font-semibold ${text}`}>{entry.title}</h2>
+              <div className={`flex items-center space-x-2 ${bgOverlay} px-3 py-1 rounded-full`}>
+                <Calendar className={`w-4 h-4 ${text}`} />
+                <span className={text}>{entry.date}</span>
               </div>
             </div>
-            <p className={`${currentTheme.subtext} line-clamp-3`}>{entry.content}</p>
+            <p className={`${subtext} line-clamp-3`}>{entry.content}</p>
             <div className="mt-4">
-              <span className={`${currentTheme.text} text-sm px-3 py-1 rounded-full bg-white/5`}>
+              <span className={`${text} ${bgOverlay} text-sm px-3 py-1 rounded-full border ${borderColor}`}>
                 {entry.mood}
               </span>
             </div>

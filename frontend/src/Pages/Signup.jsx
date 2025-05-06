@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // ✅ Import navigate
 
 const Signup = ({ onClose, switchToLogin }) => {
-  
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate(); // ✅ Create navigate instance
 
- 
   const handleRegister = async () => {
     try {
       const res = await fetch("http://localhost:5000/api/auth/register", {
@@ -22,7 +22,9 @@ const Signup = ({ onClose, switchToLogin }) => {
 
       if (res.ok) {
         alert("User registered successfully");
-        onClose();
+        localStorage.setItem("token", data.token || "dummy-token"); // Optional: store token
+        onClose(); // Optional: if you're using modal
+        navigate('/diary'); // ✅ Navigate to DiaryPage
       } else {
         alert(data.message || "Registration failed");
       }
@@ -30,13 +32,7 @@ const Signup = ({ onClose, switchToLogin }) => {
       console.error("Registration error:", error);
       alert("Something went wrong");
     }
-    if (res.ok) {
-      localStorage.setItem("token", data.token); 
-      navigate('/diary');
-    }
-    
   };
-
 
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 backdrop-blur-sm z-50">
@@ -46,7 +42,6 @@ const Signup = ({ onClose, switchToLogin }) => {
         </button>
         <h2 className="text-2xl font-semibold mb-6 text-center">Register</h2>
 
-        {/*  Input handlers */}
         <input
           type="text"
           placeholder="Name"
@@ -69,7 +64,6 @@ const Signup = ({ onClose, switchToLogin }) => {
           className="w-full p-2 mb-4 rounded bg-white/20 text-white"
         />
 
-        {/*  Attach handler */}
         <button
           onClick={handleRegister}
           className="w-full bg-blue-300 text-blue-900 py-2 rounded font-bold hover:bg-blue-400"
