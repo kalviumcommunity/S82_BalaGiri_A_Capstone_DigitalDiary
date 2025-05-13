@@ -15,7 +15,7 @@ To build a responsive web application that allows users to:
 ✅ **Automated email alerts** if inactive for X days  
 ✅ **User authentication** with Firebase/Auth0  
 
----
+
 
 ## 🛠️ Tech Stack  
 - **Frontend**: React.js, Tailwind CSS, Framer Motion  
