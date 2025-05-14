@@ -1,107 +1,161 @@
-import React, { useState, useEffect } from 'react';
-import { PenSquare, Calendar, Search } from 'lucide-react';
-import NewEntryModal from '../components/NewEntry';
+import React, { useState } from 'react';
+import { X, Image, Mic, MicOff } from 'lucide-react';
+import { format } from 'date-fns';
 
-function DiaryPage({ currentTheme }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [entries, setEntries] = useState([]);
-  const [isNewEntryOpen, setIsNewEntryOpen] = useState(false);
+function NewEntryModal({ onClose, onSave, currentTheme }) {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [mood, setMood] = useState('');
+  const [photos, setPhotos] = useState([]);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
 
   const isDark = currentTheme?.text?.includes('E1E7FF');
-  const text = isDark ? 'text-white' : 'text-slate-800';
-  const subtext = isDark ? 'text-slate-200' : 'text-slate-600';
-  const bgOverlay = isDark ? 'bg-[#1B2942]/60' : 'bg-white/80';
-  const borderColor = isDark ? 'border-white/20' : 'border-slate-200';
-  const button = isDark
-    ? 'bg-[#E1E7FF] text-[#1B2942] hover:bg-[#B8C4E8]'
-    : 'bg-[#1B2942] text-white hover:bg-[#2C4870]';
+  const textColor = isDark ? 'text-white' : 'text-slate-800';
+  const bgOverlay = isDark ? 'bg-black/50' : 'bg-white/90';
+  const modalBg = isDark ? 'bg-[#1B2A4A]' : 'bg-white';
+  const buttonOutline = currentTheme?.buttonOutline || 'border border-gray-300 text-black';
+  const buttonStyle = currentTheme?.button || 'bg-cyan-500 text-white hover:bg-cyan-600';
 
-  useEffect(() => {
-    fetchLatestEntries();
-  }, []);
+  // Handle photo selection
+  const handlePhotoChange = (e) => {
+    setPhotos(Array.from(e.target.files));
+  };
 
-  const fetchLatestEntries = async () => {
+  // Start recording audio
+  const startRecording = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/latest`);
-      const data = await res.json();
-      setEntries(data || []);
-    } catch (err) {
-      console.error("Error fetching entries:", err);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/mpeg' });
+        setAudioBlob(blob); // ✅ Save Blob directly (not base64)
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Mic error:', error);
     }
   };
 
-  const filteredEntries = entries.filter((entry) =>
-    entry.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const stopRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Submit the form with FormData (photos + audio)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    formData.append('mood', mood);
+    formData.append('date', new Date().toISOString().split('T')[0]);
+
+    photos.forEach(photo => {
+      formData.append('photos', photo);
+    });
+
+    if (audioBlob instanceof Blob) {
+      formData.append('audio', audioBlob, 'recording.mp3');
+    }
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/new`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to save entry');
+
+      onSave();
+      onClose();
+    } catch (err) {
+      console.error('Upload error:', err);
+    }
+  };
 
   return (
-    <div
-      className={`pt-24 px-6 max-w-7xl mx-auto min-h-screen ${
-        isDark ? 'bg-[#4E71FF]' : ''
-      }`}
-    >
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className={`text-4xl font-bold ${currentTheme?.mode === 'dark' ? 'text-black' : 'text-white'}`}>
-          My Diary
-        </h1>
-        <button
-          onClick={() => setIsNewEntryOpen(true)}
-          className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
-        >
-          <PenSquare className="w-5 h-5" />
-          <span>New Entry</span>
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className={`fixed inset-0 ${bgOverlay}`} onClick={onClose}></div>
+      <div className={`relative ${modalBg} rounded-lg p-8 max-w-2xl w-full mx-4 shadow-xl`}>
+        <button onClick={onClose} className={`absolute top-4 right-4 ${textColor} hover:opacity-70`}>
+          <X className="w-6 h-6" />
         </button>
-      </div>
 
-      {/* Search */}
-      <div className="mb-8">
-        <div className="relative">
-          <Search className={`absolute left-4 top-3 w-5 h-5 ${subtext}`} />
+        <h2 className={`text-2xl font-bold mb-6 ${textColor}`}>New Diary Entry</h2>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
           <input
             type="text"
-            placeholder="Search your entries..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={`w-full pl-12 pr-4 py-3 rounded-lg ${bgOverlay} backdrop-blur-md ${text} placeholder:${subtext} focus:outline-none focus:ring-2 focus:ring-white/30`}
+            placeholder="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-white/10' : 'bg-gray-100'} ${textColor}`}
+            required
           />
-        </div>
-      </div>
 
-      {/* Diary Entries */}
-      <div className="grid gap-6">
-        {filteredEntries.map((entry) => (
-          <div
-            key={entry._id}
-            className={`rounded-2xl p-6 transition-all cursor-pointer border ${borderColor} shadow-[0_4px_30px_rgba(0,0,0,0.1)] ${bgOverlay} hover:brightness-110`}
-          >
-            <div className="flex justify-between items-start mb-4">
-              <h2 className={`text-2xl font-semibold ${text}`}>{entry.title}</h2>
-              <div className="flex items-center space-x-2 bg-black/20 px-3 py-1 rounded-full">
-                <Calendar className={`w-4 h-4 ${text}`} />
-                <span className={text}>{entry.date}</span>
-              </div>
-            </div>
-            <p className={`${subtext} line-clamp-3`}>{entry.content}</p>
-            <div className="mt-4">
-              <span className={`${text} bg-black/10 text-sm px-3 py-1 rounded-full border ${borderColor}`}>
-                {entry.mood}
-              </span>
-            </div>
+          <textarea
+            placeholder="Write your thoughts..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-white/10' : 'bg-gray-100'} ${textColor} min-h-[200px]`}
+            required
+          />
+
+          <input
+            type="text"
+            placeholder="How are you feeling?"
+            value={mood}
+            onChange={(e) => setMood(e.target.value)}
+            className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-white/10' : 'bg-gray-100'} ${textColor}`}
+          />
+
+          <div className="flex space-x-4">
+            <label className={`flex items-center space-x-2 ${buttonOutline} border-2 px-4 py-2 rounded-lg cursor-pointer`}>
+              <Image className="w-5 h-5" />
+              <span>Add Photos</span>
+              <input type="file" accept="image/*" multiple onChange={handlePhotoChange} className="hidden" />
+            </label>
+
+            <button
+              type="button"
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`flex items-center space-x-2 ${buttonOutline} border-2 px-4 py-2 rounded-lg`}
+            >
+              {isRecording ? (
+                <>
+                  <MicOff className="w-5 h-5" />
+                  <span>Stop</span>
+                </>
+              ) : (
+                <>
+                  <Mic className="w-5 h-5" />
+                  <span>Record</span>
+                </>
+              )}
+            </button>
           </div>
-        ))}
-      </div>
 
-      {/* New Entry Modal */}
-      {isNewEntryOpen && (
-        <NewEntryModal
-          onClose={() => setIsNewEntryOpen(false)}
-          onSave={fetchLatestEntries}
-          currentTheme={currentTheme}
-        />
-      )}
+          <div className="flex justify-end pt-4">
+            <button type="submit" className={`${buttonStyle} px-6 py-2 rounded-lg`}>
+              Save Entry
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
-export default DiaryPage;
+export default NewEntryModal;
