@@ -1,55 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PenSquare, Calendar, Search } from 'lucide-react';
-
-// Sample mock entries
-const mockEntries = [
-  {
-    id: 1,
-    title: "First Day of Spring",
-    content: "Today marks the beginning of spring. The flowers are starting to bloom...",
-    date: "2024-03-20",
-    mood: "Happy"
-  },
-  {
-    id: 2,
-    title: "Reflection on Goals",
-    content: "Looking back at my quarterly goals, I'm proud of the progress...",
-    date: "2024-03-19",
-    mood: "Thoughtful"
-  },
-  {
-    id: 3,
-    title: "Weekend Adventure",
-    content: "Went hiking with friends today. The view from the summit was breathtaking...",
-    date: "2024-03-18",
-    mood: "Excited"
-  }
-];
 
 function DiaryPage({ currentTheme }) {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  
-  const { text = 'text-black', subtext = 'text-gray-500', button = 'bg-blue-500' } = currentTheme || {};
-  const bgOverlay = 'bg-white/80'; 
-  const bgOverlayHover = 'hover:bg-white/90';  
-  const borderColor = 'border-slate-200'; 
-  return (
-    <div className="pt-24 px-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-      <h1 className={`text-4xl font-bold ${currentTheme?.mode === 'dark' ? 'text-black' : 'text-white'}`}>
-  My Diary
-</h1>
+  const [entries, setEntries] = useState([]);
+  const navigate = useNavigate(); // 👈 Add this
 
-        
+  const isDark = currentTheme?.text?.includes('E1E7FF');
+  const text = isDark ? 'text-white' : 'text-slate-800';
+  const subtext = isDark ? 'text-white/80' : 'text-slate-600';
+  const bgOverlay = isDark ? 'bg-white/20' : 'bg-white/80';
+  const borderColor = isDark ? 'border-white/10' : 'border-slate-200';
+
+  useEffect(() => {
+    fetchLatestEntries();
+  }, []);
+
+  const fetchLatestEntries = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/latest`);
+      const data = await res.json();
+      setEntries(data || []);
+    } catch (err) {
+      console.error("Error fetching entries:", err);
+    }
+  };
+
+  const filteredEntries = entries.filter((entry) =>
+    entry.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className={`pt-24 px-6 max-w-7xl mx-auto min-h-screen ${isDark ? 'bg-[#4E71FF]' : ''}`}>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className={`text-4xl font-bold ${currentTheme?.mode === 'dark' ? 'text-black' : 'text-white'}`}>
+          My Diary
+        </h1>
         <button
-          className={`${button} px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2`}
+          onClick={() => navigate('/diary/new')} // 👈 Navigate to New Entry route
+          className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
         >
           <PenSquare className="w-5 h-5" />
           <span>New Entry</span>
         </button>
       </div>
 
+      {/* Search */}
       <div className="mb-8">
         <div className="relative">
           <Search className={`absolute left-4 top-3 w-5 h-5 ${subtext}`} />
@@ -63,11 +61,13 @@ function DiaryPage({ currentTheme }) {
         </div>
       </div>
 
+      {/* Entries */}
       <div className="grid gap-6">
-        {mockEntries.map((entry) => (
+        {filteredEntries.map((entry) => (
           <div
-            key={entry.id}
-            className={`${bgOverlay} backdrop-blur-md rounded-lg p-6 ${bgOverlayHover} transition-colors cursor-pointer border ${borderColor}`}
+            key={entry._id}
+            className={`rounded-2xl p-6 transition-all cursor-pointer border ${borderColor} shadow-[0_4px_30px_rgba(0,0,0,0.1)] hover:${bgOverlay}`}
+            style={{ backgroundColor: '#F2F2F2' }}
           >
             <div className="flex justify-between items-start mb-4">
               <h2 className={`text-2xl font-semibold ${text}`}>{entry.title}</h2>
