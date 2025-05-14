@@ -128,6 +128,8 @@ function App() {
         } />
 
         <Route path="/diary" element={<DiaryPage />} />
+
+         
       </Routes>
 
       {showLogin && (

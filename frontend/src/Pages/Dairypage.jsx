@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { PenSquare, Calendar, Search } from 'lucide-react';
+import NewEntryModal from '../components/NewEntry';
 
 function DiaryPage({ currentTheme }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [entries, setEntries] = useState([]);
-  const navigate = useNavigate(); // 👈 Add this
+  const [isNewEntryOpen, setIsNewEntryOpen] = useState(false); // ✅ added
 
   const isDark = currentTheme?.text?.includes('E1E7FF');
   const text = isDark ? 'text-white' : 'text-slate-800';
@@ -39,7 +39,7 @@ function DiaryPage({ currentTheme }) {
           My Diary
         </h1>
         <button
-          onClick={() => navigate('/diary/new')} // 👈 Navigate to New Entry route
+          onClick={() => setIsNewEntryOpen(true)} // open modal
           className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
         >
           <PenSquare className="w-5 h-5" />
@@ -85,6 +85,15 @@ function DiaryPage({ currentTheme }) {
           </div>
         ))}
       </div>
+
+      {/* New Entry Modal outside map */}
+      {isNewEntryOpen && (
+        <NewEntryModal
+          onClose={() => setIsNewEntryOpen(false)}
+          onSave={fetchLatestEntries}
+          currentTheme={currentTheme}
+        />
+      )}
     </div>
   );
 }
