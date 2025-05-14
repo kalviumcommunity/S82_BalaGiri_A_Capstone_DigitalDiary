@@ -10,12 +10,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use('/uploads',express.static('uploads'));
+app.use('/api/diary',require('./routes/diaryRoutes'));
 
 app.use('/api/auth', authRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
 .then(()=>{
     console.log("MongoDB connected");
-    app.listen(5002,()=> console.log("Server running on port 5000"));
+    app.listen(5000,()=> console.log("Server running on port 5000"));
 })
 .catch(err => console.error(err));
+
+const diaryRoutes = require('./routes/diaryRoutes');
+app.use('/api/diary', diaryRoutes);
