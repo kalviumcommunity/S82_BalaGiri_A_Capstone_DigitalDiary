@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { PenSquare, Calendar, Search } from 'lucide-react';
+import { PenSquare, Calendar, Search, Trash2, Pencil, Eye } from 'lucide-react';
 import NewEntryModal from '../components/NewEntry';
 
 function DiaryPage({ currentTheme }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [entries, setEntries] = useState([]);
-  const [isNewEntryOpen, setIsNewEntryOpen] = useState(false); // ✅ added
+  const [isNewEntryOpen, setIsNewEntryOpen] = useState(false);
+  const [entryToEdit, setEntryToEdit] = useState(null); // For editing
 
   const isDark = currentTheme?.text?.includes('E1E7FF');
   const text = isDark ? 'text-white' : 'text-slate-800';
@@ -23,7 +24,23 @@ function DiaryPage({ currentTheme }) {
       const data = await res.json();
       setEntries(data || []);
     } catch (err) {
-      console.error("Error fetching entries:", err);
+      console.error('Error fetching entries:', err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this entry?')) return;
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/delete/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      fetchLatestEntries();
+    } catch (error) {
+      console.error('Delete failed:', error);
     }
   };
 
@@ -39,7 +56,10 @@ function DiaryPage({ currentTheme }) {
           My Diary
         </h1>
         <button
-          onClick={() => setIsNewEntryOpen(true)} // open modal
+          onClick={() => {
+            setIsNewEntryOpen(true);
+            setEntryToEdit(null);
+          }}
           className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
         >
           <PenSquare className="w-5 h-5" />
@@ -66,7 +86,7 @@ function DiaryPage({ currentTheme }) {
         {filteredEntries.map((entry) => (
           <div
             key={entry._id}
-            className={`rounded-2xl p-6 transition-all cursor-pointer border ${borderColor} shadow-[0_4px_30px_rgba(0,0,0,0.1)] hover:${bgOverlay}`}
+            className={`rounded-2xl p-6 transition-all border ${borderColor} shadow hover:${bgOverlay}`}
             style={{ backgroundColor: '#F2F2F2' }}
           >
             <div className="flex justify-between items-start mb-4">
@@ -77,23 +97,35 @@ function DiaryPage({ currentTheme }) {
               </div>
             </div>
             <p className={`${subtext} line-clamp-3`}>{entry.content}</p>
-            <div className="mt-4">
+            <div className="mt-4 flex items-center justify-between">
               <span className={`${text} ${bgOverlay} text-sm px-3 py-1 rounded-full border ${borderColor}`}>
                 {entry.mood}
               </span>
+              <div className="flex space-x-3">
+                <button onClick={() => setEntryToEdit(entry)} title="Edit">
+                  <Pencil className="w-5 h-5 text-yellow-600" />
+                </button>
+                <button onClick={() => handleDelete(entry._id)} title="Delete">
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* New Entry Modal outside map */}
-      {isNewEntryOpen && (
+      {/* Modal for New or Edit */}
+      {isNewEntryOpen || entryToEdit ? (
         <NewEntryModal
-          onClose={() => setIsNewEntryOpen(false)}
+          onClose={() => {
+            setIsNewEntryOpen(false);
+            setEntryToEdit(null);
+          }}
           onSave={fetchLatestEntries}
           currentTheme={currentTheme}
+          initialData={entryToEdit}
         />
-      )}
+      ) : null}
     </div>
   );
 }
