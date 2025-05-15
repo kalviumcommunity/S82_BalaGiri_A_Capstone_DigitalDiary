@@ -58,47 +58,43 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const formData = new FormData();
-  formData.append('title', title);
-  formData.append('content', content);
-  formData.append('mood', mood);
-  formData.append('date', new Date().toISOString().split('T')[0]);
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    formData.append('mood', mood);
+    formData.append('date', new Date().toISOString().split('T')[0]);
 
-  photos.forEach(photo => {
-    formData.append('photos', photo);
-  });
-
-  if (audioBlob instanceof Blob) {
-    formData.append('audio', audioBlob, 'recording.mp3');
-  }
-
-  const url = entry
-    ? `${import.meta.env.VITE_BACKEND_URL}/api/diary/update/${entry._id}`
-    : `${import.meta.env.VITE_BACKEND_URL}/api/diary/new`;
-
-  const method = entry ? 'PUT' : 'POST';
-
-  try {
-    const token = localStorage.getItem('token'); 
-    const res = await fetch(url, {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      body: formData,
+    photos.forEach(photo => {
+      formData.append('photos', photo);
     });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to save entry');
+    if (audioBlob instanceof Blob) {
+      formData.append('audio', audioBlob, 'recording.mp3');
+    }
 
-    onSave();
-    onClose();
-  } catch (err) {
-    console.error('Upload error:', err);
-  }
-};
+    const url = entry
+      ? `${import.meta.env.VITE_BACKEND_URL}/api/diary/update/${entry._id}`
+      : `${import.meta.env.VITE_BACKEND_URL}/api/diary/new`;
+
+    const method = entry ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method,
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to save entry');
+
+      onSave();
+      onClose();
+    } catch (err) {
+      console.error('Upload error:', err);
+    }
+  };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">

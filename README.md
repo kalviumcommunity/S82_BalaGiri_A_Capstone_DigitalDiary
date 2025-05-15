@@ -95,7 +95,7 @@ Welcome to the **Digital Diary** – a full-stack MERN (MongoDB, Express, React,
 
 ## 🙌 Author
 
-**Bala Giri (aka Devil)**  
+**Bala Giri (aka Novachrono)**  
 Capstone Project | Kalvium S82
 
 Contact : balagiri702@gmail.com
@@ -103,3 +103,7 @@ Contact : balagiri702@gmail.com
 ---
 
 Feel free to fork, enhance, or contribute!
+
+
+✅ Backend deploy link  : "https://s82-balagiri-a-capstone-digitaldiary-2.onrender.com"
+✅ Frontend deploy link : ""

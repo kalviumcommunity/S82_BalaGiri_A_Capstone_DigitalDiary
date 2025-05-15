@@ -9,21 +9,16 @@ const {
 } = require('../controllers/diaryController');
 const diaryController = require('../controllers/diaryController')
 // CREATE new diary entry
-
-const authenticateToken = require('../middleware/auth');
-
 router.post(
   '/new',
-  authenticateToken,
   upload.fields([
     { name: 'photos', maxCount: 10 },
     { name: 'audio', maxCount: 1 }
   ]),
-  diaryController.createEntry
+  diaryController.createEntry 
 );
 
 
-// GET latest 3 entries
 router.get('/latest', async (req, res) => {
   try {
     const latest = await DiaryEntry.find().sort({ date: -1 }).limit(3);

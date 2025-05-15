@@ -16,7 +16,7 @@ app.use('/uploads', express.static('uploads'));
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/diary', diaryRoutes); 
+app.use('/api/diary', diaryRoutes); // load diary routes only once
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
