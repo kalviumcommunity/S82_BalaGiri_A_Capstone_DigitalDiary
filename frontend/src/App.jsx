@@ -4,7 +4,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import Login from './Pages/Login';
 import Signup from './Pages/Signup';
 import DiaryPage from './Pages/Dairypage';
-
+import Features from './Pages/Features';
 function App() {
   const [isDark, setIsDark] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
@@ -49,7 +49,7 @@ function App() {
             <div className="flex items-center space-x-4 sm:space-x-8 text-sm sm:text-base">
               <a href="#" className="hover:opacity-80 transition-opacity">Home</a>
               <a href="#" className="hover:opacity-80 transition-opacity">About</a>
-              <a href="#" className="hover:opacity-80 transition-opacity">Features</a>
+              <a href="#" className="hover:opacity-80 transition-opacity">Features </a>
               <a href="#" className="hover:opacity-80 transition-opacity">Contact</a>
               <button
                 onClick={() => setIsDark(!isDark)}
@@ -128,6 +128,7 @@ function App() {
         } />
 
         <Route path="/diary" element={<DiaryPage />} />
+        <Route path='/features' element={<Features/>}/>
 
          
       </Routes>
