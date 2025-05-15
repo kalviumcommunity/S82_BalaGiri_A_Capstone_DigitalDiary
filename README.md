@@ -67,3 +67,39 @@ Welcome to the **Digital Diary** – a full-stack MERN (MongoDB, Express, React,
   - Diary content
   - Uploaded media (images/audio)
 - ⚠️ Restricted file size and type validation
+
+
+---
+
+## 🧪 Testing & Deployment
+
+### Tested On:
+- Localhost with MongoDB Atlas
+- Vite + React development server
+
+### Deployment:
+- 🔧 Backend: Render
+- 🖼️ Frontend: [Vercel/Netlify] (to be done)
+
+---
+
+## ✨ Future Plans
+
+- 🗓️ Calendar-based access and filters
+- 🔐 AES-256 encryption for sensitive data
+- 🧽 Entry deletion support
+- 📁 Organize entries by month/year
+- 📦 Optimized media storage (Cloudinary or S3)
+
+---
+
+## 🙌 Author
+
+**Bala Giri (aka Devil)**  
+Capstone Project | Kalvium S82
+
+Contact : balagiri702@gmail.com
+
+---
+
+Feel free to fork, enhance, or contribute!
