@@ -1,70 +1,69 @@
-# 📖 Digital Diary Project  
-A **smart & secure** digital diary that allows users to store **text, images, and audio** with **encryption and calendar-based retrieval**.
-To build a responsive web application that allows users to:
-✅ Record daily memories in text, image, or audio format
-✅ Access their diary anytime through a calendar-based interface
-✅ Ensure privacy and security with user authentication
-✅ Store entries securely in the cloud
+# 📓 Digital Diary - Capstone Project
 
+Welcome to the **Digital Diary** – a full-stack MERN (MongoDB, Express, React, Node.js) project built as a capstone to create a secure and visually appealing diary app.
 
-
-## 🚀 Features  
-✅ Secure **AES-256 encryption** for text, images & audio  
-✅ **Calendar-based retrieval** for past memories  
-✅ **Offline-first** support with **Cloudify cloud storage**  
-✅ **Automated email alerts** if inactive for X days  
-✅ **User authentication** with Firebase/Auth0  
-
-
-
-## 🛠️ Tech Stack  
-- **Frontend**: React.js, Tailwind CSS, Framer Motion  
-- **Backend**: Node.js, Express.js  
-- **Database**: MongoDB Atlas (Field-Level Encryption)  
-- **Storage**: Cloudify (for encrypted images & audio)  
-- **Authentication**: Firebase/Auth0  
-- **Hosting**: Netlify (Frontend) & Heroku/AWS (Backend)  
-- **Email Automation**: NodeMailer for inactivity-based messages  
+## 🌐 Live URL
+> [Add your deployed frontend and backend URLs here once available]
 
 ---
 
-## 🔧 Installation & Setup  
-1️⃣ **Clone the Repository**  
-```bash
-git clone https://github.com/yourusername/digital-diary.git
-cd digital-diary
-```
-2️⃣ **Backend Setup**  
-```bash
-cd backend
-npm install
-npm start
-```
-3️⃣ **Frontend Setup**  
-```bash
-cd frontend
-npm install
-npm start
-```
+## 📌 Features Implemented
+
+### ✅ User Authentication
+- 🔐 User registration and login with secure password hashing (bcrypt)
+- 🛡️ JWT-based session authentication
+- Protected routes using token verification (stored in `localStorage`)
+
+### 📝 Diary Entry Management
+- 🧾 Create new diary entries with:
+  - Title
+  - Content
+  - Mood
+  - Date
+- 🖼️ Upload and attach multiple photos
+- 🎙️ Record and attach audio files
+
+### 🔍 Search & View Entries
+- 🔎 Filter entries by **title** using a real-time search bar
+- 📅 View recent entries sorted by date
+
+### 🧰 CRUD Operations
+- ✅ Create (fully functional)
+- 🔁 Update (via modal - implemented)
+- ❌ Delete (planned)
+- 🔎 Read (view and fetch entries with search support)
 
 ---
 
+## 💻 Tech Stack
+
+### Frontend
+- React + Tailwind CSS
+- `lucide-react` icons
+- Context-aware themes (Light/Dark)
+- `NewEntryModal` component for add/edit
+- Audio recording via Web APIs (`MediaRecorder`)
+- Form submission via `FormData` API
+
+### Backend
+- Node.js + Express
+- MongoDB + Mongoose
+- Multer for file upload handling
+- JWT for secure authentication
+- Separate route/controllers for `auth` and `diary`
+- Static file serving (`/uploads`)
 
 ---
 
-## 🛡️ Security  
-🔒 **AES-256 encryption** protects diary entries.  
-🔑 **Client-Side Field Encryption** in MongoDB ensures data privacy.  
-📧 **Inactivity Email Alerts** notify trusted contacts.  
+## 🔒 Security
 
----
+### Implemented:
+- ✅ JWT Authentication
+- ✅ Form validation
+- ✅ Environment variables using `.env`
 
-## 📌 Future Enhancements  
-🔹 **AI-based emotion tagging** for diary entries  
-🔹 **Voice-to-text transcription** for audio logs  
-🔹 **AR/VR memory visualization**  
-
----
-
-## 📞 Contact  
-📧 Email: balagiri702@gmail.com
+### Planned:
+- 🧠 **AES-256 encryption** for:
+  - Diary content
+  - Uploaded media (images/audio)
+- ⚠️ Restricted file size and type validation
