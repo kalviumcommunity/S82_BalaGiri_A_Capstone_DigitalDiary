@@ -23,15 +23,15 @@ function CalendarView({ onSelectDate, currentTheme }) {
   };
 
   return (
-    <div className={`${textColor} p-4 rounded-lg ${isDark ? 'bg-white/10' : 'bg-white'} shadow-lg`}>
+    <div className={${textColor} p-4 rounded-lg ${isDark ? 'bg-white/10' : 'bg-white'} shadow-lg}>
       <div className="flex justify-between items-center mb-4">
-        <button onClick={previousMonth} className={`p-2 rounded-full ${bgHover}`}>
+        <button onClick={previousMonth} className={p-2 rounded-full ${bgHover}}>
           <ChevronLeft className="w-5 h-5" />
         </button>
         <h2 className="text-xl font-semibold">
           {format(currentDate, 'MMMM yyyy')}
         </h2>
-        <button onClick={nextMonth} className={`p-2 rounded-full ${bgHover}`}>
+        <button onClick={nextMonth} className={p-2 rounded-full ${bgHover}}>
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
