@@ -106,4 +106,4 @@ Feel free to fork, enhance, or contribute!
 
 
 ✅ Backend deploy link  : "https://s82-balagiri-a-capstone-digitaldiary-2.onrender.com"
-✅ Frontend deploy link : ""
+✅ Frontend deploy link : "https://6825a258f9d997352c782c06--dynamic-bunny-caba5e.netlify.app/"
