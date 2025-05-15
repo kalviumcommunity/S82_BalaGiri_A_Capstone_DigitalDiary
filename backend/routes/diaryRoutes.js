@@ -2,49 +2,47 @@ const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/multer');
 const DiaryEntry = require('../models/diaryentry');
-
+const {
+  getEntryByTitle,
+  updateEntry,
+  deleteEntry,
+} = require('../controllers/diaryController');
+const diaryController = require('../controllers/diaryController')
+// CREATE new diary entry
 router.post(
   '/new',
-  upload.fields([{ name: 'photos' }, { name: 'audio', maxCount: 1 }]),
-  async (req, res) => {
-    try {
-      const { title, content, mood, date } = req.body;
-
-      const photos = req.files['photos']
-        ? req.files['photos'].map(file => file.path)
-        : [];
-
-      const audio = req.files['audio'] ? req.files['audio'][0].path : '';
-
-      const newEntry = new DiaryEntry({
-        title,
-        content,
-        mood,
-        date,
-        photos,
-        audio
-      });
-
-      await newEntry.save();
-
-      res.status(201).json({ message: 'Diary entry created', entry: newEntry });
-    } catch (err) {
-      console.error('Error saving diary entry:', err);
-      res.status(500).json({ message: 'Server error' });
-    }
-  }
+  upload.fields([
+    { name: 'photos', maxCount: 10 },
+    { name: 'audio', maxCount: 1 }
+  ]),
+  diaryController.createEntry 
 );
 
-router.get('/latest',async(req,res)=>{
-  try{
-    const latest = await DiaryEntry.find().sort({date:-1}).limit(3);
+// GET latest 3 entries
+router.get('/latest', async (req, res) => {
+  try {
+    const latest = await DiaryEntry.find().sort({ date: -1 }).limit(3);
     res.status(200).json(latest);
-  }
-  catch(err)
-  {
-    console.error('Fetch latest entries error:',err);
-    res.status(500).json({message:"Server error"});
+  } catch (err) {
+    console.error('Fetch latest entries error:', err);
+    res.status(500).json({ message: "Server error" });
   }
 });
+
+// GET entry by title (for search)
+router.get('/search', getEntryByTitle);
+
+// UPDATE diary entry by ID
+router.put(
+  '/update/:id',
+  upload.fields([
+    { name: 'photos', maxCount: 10 },
+    { name: 'audio', maxCount: 1 }
+  ]),
+  updateEntry
+);
+
+// DELETE diary entry by ID
+router.delete('/delete/:id', deleteEntry);
 
 module.exports = router;
