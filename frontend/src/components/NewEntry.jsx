@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Image, Mic, MicOff } from 'lucide-react';
 import { format } from 'date-fns';
 
-function NewEntryModal({ onClose, onSave, currentTheme }) {
+function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [mood, setMood] = useState('');
@@ -18,12 +18,18 @@ function NewEntryModal({ onClose, onSave, currentTheme }) {
   const buttonOutline = currentTheme?.buttonOutline || 'border border-gray-300 text-black';
   const buttonStyle = currentTheme?.button || 'bg-cyan-500 text-white hover:bg-cyan-600';
 
-  // Handle photo selection
+  useEffect(() => {
+    if (entry) {
+      setTitle(entry.title || '');
+      setContent(entry.content || '');
+      setMood(entry.mood || '');
+    }
+  }, [entry]);
+
   const handlePhotoChange = (e) => {
     setPhotos(Array.from(e.target.files));
   };
 
-  // Start recording audio
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -33,7 +39,7 @@ function NewEntryModal({ onClose, onSave, currentTheme }) {
       recorder.ondataavailable = (e) => chunks.push(e.data);
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/mpeg' });
-        setAudioBlob(blob); // ✅ Save Blob directly (not base64)
+        setAudioBlob(blob);
       };
 
       recorder.start();
@@ -51,39 +57,48 @@ function NewEntryModal({ onClose, onSave, currentTheme }) {
     }
   };
 
-  // Submit the form with FormData (photos + audio)
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('content', content);
-    formData.append('mood', mood);
-    formData.append('date', new Date().toISOString().split('T')[0]);
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('content', content);
+  formData.append('mood', mood);
+  formData.append('date', new Date().toISOString().split('T')[0]);
 
-    photos.forEach(photo => {
-      formData.append('photos', photo);
+  photos.forEach(photo => {
+    formData.append('photos', photo);
+  });
+
+  if (audioBlob instanceof Blob) {
+    formData.append('audio', audioBlob, 'recording.mp3');
+  }
+
+  const url = entry
+    ? `${import.meta.env.VITE_BACKEND_URL}/api/diary/update/${entry._id}`
+    : `${import.meta.env.VITE_BACKEND_URL}/api/diary/new`;
+
+  const method = entry ? 'PUT' : 'POST';
+
+  try {
+    const token = localStorage.getItem('token'); 
+    const res = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData,
     });
 
-    if (audioBlob instanceof Blob) {
-      formData.append('audio', audioBlob, 'recording.mp3');
-    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to save entry');
 
-    try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/new`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to save entry');
-
-      onSave();
-      onClose();
-    } catch (err) {
-      console.error('Upload error:', err);
-    }
-  };
+    onSave();
+    onClose();
+  } catch (err) {
+    console.error('Upload error:', err);
+  }
+};
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
@@ -93,7 +108,9 @@ function NewEntryModal({ onClose, onSave, currentTheme }) {
           <X className="w-6 h-6" />
         </button>
 
-        <h2 className={`text-2xl font-bold mb-6 ${textColor}`}>New Diary Entry</h2>
+        <h2 className={`text-2xl font-bold mb-6 ${textColor}`}>
+          {entry ? 'Edit Entry' : 'New Diary Entry'}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <input
@@ -149,7 +166,7 @@ function NewEntryModal({ onClose, onSave, currentTheme }) {
 
           <div className="flex justify-end pt-4">
             <button type="submit" className={`${buttonStyle} px-6 py-2 rounded-lg`}>
-              Save Entry
+              {entry ? 'Update Entry' : 'Save Entry'}
             </button>
           </div>
         </form>
