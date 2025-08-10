@@ -8,28 +8,31 @@ const Login = ({ onClose, switchToSignup }) => {
   const navigate = useNavigate(); 
 
   const handleLogin = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
+  try {
+    const res = await fetch("http://localhost:5000/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+  if (!data.token) {
+    alert("Login succeeded but no token received!");
+    return;
+  }
+  localStorage.setItem("token", data.token);
+  navigate("/diary");
+  onClose(); 
+} else {
+  alert(data.message || "Login failed");
+}
+  } catch (err) {
+    alert("Something went wrong during login.");
+  }
+}; 
   
-      const data = await res.json();
-  
-      if (res.ok) {
-        alert("Login successful!");
-        localStorage.setItem("token", data.token);
-        navigate("/diary"); 
-        onClose(); 
-      } else {
-        alert(data.message || "Login failed");
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("Something went wrong");
-    }
-  };
   
 
   return (

@@ -1,27 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/multer');
+const authenticateToken = require('../middleware/auth');
 const DiaryEntry = require('../models/diaryentry');
 const {
   getEntryByTitle,
   updateEntry,
   deleteEntry,
+  createEntry
 } = require('../controllers/diaryController');
-const diaryController = require('../controllers/diaryController')
-// CREATE new diary entry
+
 router.post(
   '/new',
+  authenticateToken,
   upload.fields([
     { name: 'photos', maxCount: 10 },
     { name: 'audio', maxCount: 1 }
   ]),
-  diaryController.createEntry 
+  createEntry
 );
 
-
-router.get('/latest', async (req, res) => {
+router.get('/latest', authenticateToken, async (req, res) => {
   try {
-    const latest = await DiaryEntry.find().sort({ date: -1 }).limit(3);
+    const latest = await DiaryEntry.find({ user: req.user.id }).sort({ date: -1 }).limit(3);
     res.status(200).json(latest);
   } catch (err) {
     console.error('Fetch latest entries error:', err);
@@ -29,12 +30,11 @@ router.get('/latest', async (req, res) => {
   }
 });
 
-// GET entry by title (for search)
-router.get('/search', getEntryByTitle);
+router.get('/search', authenticateToken, getEntryByTitle);
 
-// UPDATE diary entry by ID
 router.put(
   '/update/:id',
+  authenticateToken,
   upload.fields([
     { name: 'photos', maxCount: 10 },
     { name: 'audio', maxCount: 1 }
@@ -42,7 +42,7 @@ router.put(
   updateEntry
 );
 
-// DELETE diary entry by ID
-router.delete('/delete/:id', deleteEntry);
+
+router.delete('/delete/:id', authenticateToken, deleteEntry);
 
 module.exports = router;

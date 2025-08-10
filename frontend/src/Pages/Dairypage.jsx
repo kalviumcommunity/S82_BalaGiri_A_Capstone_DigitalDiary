@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { PenSquare, Calendar, Search, Trash2, Pencil, Eye } from 'lucide-react';
+import { PenSquare, Calendar, Search, Trash2, Pencil } from 'lucide-react';
 import NewEntryModal from '../components/NewEntry';
+import { useNavigate } from 'react-router-dom';
 
 function DiaryPage({ currentTheme }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [entries, setEntries] = useState([]);
   const [isNewEntryOpen, setIsNewEntryOpen] = useState(false);
-  const [entryToEdit, setEntryToEdit] = useState(null); // For editing
+  const [entryToEdit, setEntryToEdit] = useState(null);
+  const navigate = useNavigate();
 
   const isDark = currentTheme?.text?.includes('E1E7FF');
   const text = isDark ? 'text-white' : 'text-slate-800';
@@ -19,21 +21,47 @@ function DiaryPage({ currentTheme }) {
   }, []);
 
   const fetchLatestEntries = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please log in first.');
+      navigate('/');
+      return;
+    }
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/latest`);
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/latest`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to fetch entries');
       setEntries(data || []);
     } catch (err) {
       console.error('Error fetching entries:', err);
+      alert('Session expired. Please login again.');
+      localStorage.removeItem('token');
+      navigate('/');
     }
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this entry?')) return;
 
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please login to delete.');
+      navigate('/');
+      return;
+    }
+
     try {
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/delete/${id}`, {
         method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
 
       const data = await res.json();
@@ -41,6 +69,7 @@ function DiaryPage({ currentTheme }) {
       fetchLatestEntries();
     } catch (error) {
       console.error('Delete failed:', error);
+      alert('Failed to delete entry.');
     }
   };
 
@@ -50,7 +79,6 @@ function DiaryPage({ currentTheme }) {
 
   return (
     <div className={`pt-24 px-6 max-w-7xl mx-auto min-h-screen ${isDark ? 'bg-[#4E71FF]' : ''}`}>
-      {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className={`text-4xl font-bold ${currentTheme?.mode === 'dark' ? 'text-black' : 'text-white'}`}>
           My Diary
@@ -67,7 +95,6 @@ function DiaryPage({ currentTheme }) {
         </button>
       </div>
 
-      {/* Search */}
       <div className="mb-8">
         <div className="relative">
           <Search className={`absolute left-4 top-3 w-5 h-5 ${subtext}`} />
@@ -81,7 +108,6 @@ function DiaryPage({ currentTheme }) {
         </div>
       </div>
 
-      {/* Entries */}
       <div className="grid gap-6">
         {filteredEntries.map((entry) => (
           <div
@@ -114,7 +140,6 @@ function DiaryPage({ currentTheme }) {
         ))}
       </div>
 
-      {/* Modal for New or Edit */}
       {isNewEntryOpen || entryToEdit ? (
         <NewEntryModal
           onClose={() => {
@@ -123,7 +148,7 @@ function DiaryPage({ currentTheme }) {
           }}
           onSave={fetchLatestEntries}
           currentTheme={currentTheme}
-          initialData={entryToEdit}
+          entry={entryToEdit}
         />
       ) : null}
     </div>

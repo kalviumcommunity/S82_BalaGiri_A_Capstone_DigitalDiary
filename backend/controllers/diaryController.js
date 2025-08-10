@@ -14,13 +14,21 @@ exports.createEntry = async (req, res) => {
       ? `/uploads/audio/${req.files['audio'][0].filename}`
       : '';
 
-    const newEntry = new DiaryEntry({ title, content, mood, date, photos, audio });
+    const entry = new DiaryEntry({
+      title,
+      content,
+      mood,
+      date,
+      photos,
+      audio,
+      user: req.user.id // Attach the user ID from the JWT
+    });
 
-    await newEntry.save();
-    res.status(201).json({ message: 'Diary entry created', entry: newEntry });
+    await entry.save();
+    res.status(201).json(entry);
   } catch (err) {
     console.error('Error saving diary entry:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Failed to create entry' });
   }
 };
 

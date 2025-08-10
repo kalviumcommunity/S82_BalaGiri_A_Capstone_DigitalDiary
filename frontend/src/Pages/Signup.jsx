@@ -9,30 +9,31 @@ const Signup = ({ onClose, switchToLogin }) => {
   const navigate = useNavigate(); 
 
   const handleRegister = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ username, email, password })
-      });
+  try {
+    const res = await fetch("http://localhost:5000/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password })
+    });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        alert("User registered successfully");
-        localStorage.setItem("token", data.token || "dummy-token"); 
-        onClose();
-        navigate('/diary');
-      } else {
-        alert(data.message || "Registration failed");
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-      alert("Something went wrong");
-    }
-  };
+    const data = await res.json();
+ 
+    if (res.ok) {
+  if (!data.token) {
+    alert("Signup succeeded but no token received!");
+    return;
+  }
+  localStorage.setItem("token", data.token);
+  navigate("/diary");
+  onClose();
+} else {
+  alert(data.message || "Signup failed");
+}
+  } catch (err) {
+    console.error("Signup error:", err);
+    alert("Something went wrong during signup.");
+  }
+};
 
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 backdrop-blur-sm z-50">
