@@ -4,24 +4,9 @@ const DiaryEntry = require('../models/diaryentry');
 
 exports.createEntry = async (req, res) => {
   try {
-    const { title, content, mood, date } = req.body;
-
-    const photos = req.files['photos']
-      ? req.files['photos'].map(file => `/uploads/photos/${file.filename}`)
-      : [];
-
-    const audio = req.files['audio']
-      ? `/uploads/audio/${req.files['audio'][0].filename}`
-      : '';
-
     const entry = new DiaryEntry({
-      title,
-      content,
-      mood,
-      date,
-      photos,
-      audio,
-      user: req.user.id // Attach the user ID from the JWT
+      ...req.body,
+      user: req.user.id, // Attach the user ID from the JWT
     });
 
     await entry.save();
