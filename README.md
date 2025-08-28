@@ -3,7 +3,8 @@
 Welcome to the **Digital Diary** – a full-stack MERN (MongoDB, Express, React, Node.js) project built as a capstone to create a secure and visually appealing diary app.
 
 ## 🌐 Live URL
-> [Add your deployed frontend and backend URLs here once available]
+Backend - ["https://s82-balagiri-a-capstone-digitaldiary-8.onrender.com"]
+Frontend - ["https://my-digidiary.netlify.app/"]
 
 ---
 
