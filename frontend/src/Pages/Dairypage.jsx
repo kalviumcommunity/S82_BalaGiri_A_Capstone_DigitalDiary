@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PenSquare, Calendar, Search, Trash2, Pencil } from 'lucide-react';
+import { PenSquare, Calendar, Search, Trash2, Pencil, X } from 'lucide-react';
 import NewEntryModal from '../components/NewEntry';
 import { useNavigate } from 'react-router-dom';
 
@@ -8,6 +8,7 @@ function DiaryPage({ currentTheme }) {
   const [entries, setEntries] = useState([]);
   const [isNewEntryOpen, setIsNewEntryOpen] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState(null);
+  const [viewEntry, setViewEntry] = useState(null);
   const navigate = useNavigate();
 
   const isDark = currentTheme?.text?.includes('E1E7FF');
@@ -17,10 +18,10 @@ function DiaryPage({ currentTheme }) {
   const borderColor = isDark ? 'border-white/10' : 'border-slate-200';
 
   useEffect(() => {
-    fetchLatestEntries();
+    fetchEntries();
   }, []);
 
-  const fetchLatestEntries = async () => {
+  const fetchEntries = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Please log in first.');
@@ -29,7 +30,7 @@ function DiaryPage({ currentTheme }) {
     }
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/latest`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/all`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -66,16 +67,22 @@ function DiaryPage({ currentTheme }) {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-      fetchLatestEntries();
+      fetchEntries();
     } catch (error) {
       console.error('Delete failed:', error);
       alert('Failed to delete entry.');
     }
   };
 
-  const filteredEntries = entries.filter((entry) =>
-    entry.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [selectedMood, setSelectedMood] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+
+  const filteredEntries = entries.filter((entry) => {
+    const matchesSearch = entry.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesMood = selectedMood ? entry.mood === selectedMood : true;
+    const matchesDate = selectedDate ? entry.date === selectedDate : true;
+    return matchesSearch && matchesMood && matchesDate;
+  });
 
   return (
     <div className={`pt-24 px-6 max-w-7xl mx-auto min-h-screen ${isDark ? 'bg-[#4E71FF]' : ''}`}>
@@ -95,8 +102,8 @@ function DiaryPage({ currentTheme }) {
         </button>
       </div>
 
-      <div className="mb-8">
-        <div className="relative">
+      <div className="mb-8 flex flex-col md:flex-row gap-4">
+        <div className="relative flex-grow">
           <Search className={`absolute left-4 top-3 w-5 h-5 ${subtext}`} />
           <input
             type="text"
@@ -106,6 +113,30 @@ function DiaryPage({ currentTheme }) {
             className={`w-full pl-12 pr-4 py-3 rounded-lg ${bgOverlay} backdrop-blur-md ${text} placeholder:${subtext} focus:outline-none focus:ring-2 focus:ring-white/30`}
           />
         </div>
+
+        {/* Mood Filter */}
+        <div className="min-w-[200px]">
+          <select
+            value={selectedMood}
+            onChange={(e) => setSelectedMood(e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg ${bgOverlay} backdrop-blur-md ${text} focus:outline-none focus:ring-2 focus:ring-white/30 appearance-none`}
+          >
+            <option value="" className="text-slate-800">All Moods</option>
+            {[...new Set(entries.map(e => e.mood))].filter(Boolean).map(mood => (
+              <option key={mood} value={mood} className="text-slate-800">{mood}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Date Filter */}
+        <div className="min-w-[200px]">
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg ${bgOverlay} backdrop-blur-md ${text} placeholder:${subtext} focus:outline-none focus:ring-2 focus:ring-white/30`}
+          />
+        </div>
       </div>
 
       <div className="grid gap-6">
@@ -113,7 +144,12 @@ function DiaryPage({ currentTheme }) {
           <div
             key={entry._id}
             className={`rounded-2xl p-6 transition-all border ${borderColor} shadow hover:${bgOverlay}`}
-            style={{ backgroundColor: '#F2F2F2' }}
+            style={{ backgroundColor: '#F2F2F2', cursor: 'pointer' }}
+            onClick={(e) => {
+              // Prevent opening when clicking edit/delete
+              if (e.target.closest('button')) return;
+              setViewEntry(entry);
+            }}
           >
             <div className="flex justify-between items-start mb-4">
               <h2 className={`text-2xl font-semibold ${text}`}>{entry.title}</h2>
@@ -140,13 +176,61 @@ function DiaryPage({ currentTheme }) {
         ))}
       </div>
 
+      {/* Entry view modal */}
+      {viewEntry && (
+        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50 p-4">
+          <div className={`bg-white/90 backdrop-blur-xl rounded-2xl p-6 md:p-8 max-w-2xl w-full relative shadow-2xl overflow-y-auto max-h-[90vh] ${text}`}>
+            <button
+              onClick={() => setViewEntry(null)}
+              className={`absolute top-4 right-4 p-2 rounded-full hover:bg-black/10 transition-colors ${text}`}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h2 className="text-3xl font-bold mb-2">{viewEntry.title}</h2>
+            <div className="flex items-center space-x-4 mb-6 text-sm opacity-70">
+              <span className="flex items-center"><Calendar className="w-4 h-4 mr-1" /> {viewEntry.date}</span>
+              <span className="bg-black/10 px-2 py-1 rounded-md">{viewEntry.mood}</span>
+            </div>
+
+            <p className="mb-6 whitespace-pre-wrap text-lg leading-relaxed opacity-90">{viewEntry.content}</p>
+
+            {/* Photos */}
+            {viewEntry.photos && viewEntry.photos.length > 0 && (
+              <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {viewEntry.photos.map((photoUrl, idx) => (
+                  <img
+                    key={idx}
+                    src={`${import.meta.env.VITE_BACKEND_URL}${photoUrl}`}
+                    alt={`Diary photo ${idx + 1}`}
+                    className="w-full h-32 md:h-48 object-cover rounded-xl shadow-sm hover:scale-105 transition-transform cursor-pointer"
+                    onClick={() => window.open(`${import.meta.env.VITE_BACKEND_URL}${photoUrl}`, '_blank')}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Audio */}
+            {viewEntry.audio && (
+              <div className="mb-4 bg-black/5 p-4 rounded-xl">
+                <p className="text-sm font-semibold mb-2 opacity-70">Voice Note</p>
+                <audio controls className="w-full">
+                  <source src={`${import.meta.env.VITE_BACKEND_URL}${viewEntry.audio}`} type="audio/mpeg" />
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* New/Edit Entry Modal */}
       {isNewEntryOpen || entryToEdit ? (
         <NewEntryModal
           onClose={() => {
             setIsNewEntryOpen(false);
             setEntryToEdit(null);
           }}
-          onSave={fetchLatestEntries}
+          onSave={fetchEntries}
           currentTheme={currentTheme}
           entry={entryToEdit}
         />

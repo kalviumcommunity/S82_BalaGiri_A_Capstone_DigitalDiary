@@ -7,8 +7,11 @@ const {
   getEntryByTitle,
   updateEntry,
   deleteEntry,
-  createEntry
+  createEntry,
+  getAllEntries
 } = require('../controllers/diaryController');
+
+router.get('/all', authenticateToken, getAllEntries);
 
 router.post(
   '/new',
@@ -20,10 +23,17 @@ router.post(
   createEntry
 );
 
+const { decrypt } = require('../utils/encryption');
+
 router.get('/latest', authenticateToken, async (req, res) => {
   try {
     const latest = await DiaryEntry.find({ user: req.user.id }).sort({ date: -1 }).limit(3);
-    res.status(200).json(latest);
+    // Decrypt content
+    const decryptedLatest = latest.map(entry => ({
+      ...entry.toObject(),
+      content: decrypt(entry.content)
+    }));
+    res.status(200).json(decryptedLatest);
   } catch (err) {
     console.error('Fetch latest entries error:', err);
     res.status(500).json({ message: "Server error" });

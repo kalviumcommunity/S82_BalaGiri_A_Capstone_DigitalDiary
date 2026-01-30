@@ -5,9 +5,10 @@ import Login from './Pages/Login';
 import Signup from './Pages/Signup';
 import DiaryPage from './Pages/Dairypage';
 import Features from './Pages/Features';
-import LearnMore from './Pages/Learnmore';
+import LearnMore from './Pages/LearnMore';
 import Contact from './Pages/Contact';
 import About from './Pages/About';
+import VerifyLogin from './Pages/VerifyLogin';
 
 function App() {
   const [isDark, setIsDark] = useState(true);
@@ -52,7 +53,7 @@ function App() {
             <div className="flex items-center space-x-4 sm:space-x-8 text-sm sm:text-base">
               <Link to="/" className="hover:opacity-80 transition-opacity">Home</Link>
               <Link to="/features" className="hover:opacity-80 transition-opacity">Features</Link>
-             <Link to="/about" className="hover:opacity-80 transition-opacity">About</Link>
+              <Link to="/about" className="hover:opacity-80 transition-opacity">About</Link>
 
               <Link to="/contact" className="hover:opacity-80 transition-opacity">Contact</Link>
               <button
@@ -134,6 +135,7 @@ function App() {
         <Route path="/learn-more" element={<LearnMore currentTheme={currentTheme} />} />
         <Route path="/contact" element={<Contact currentTheme={currentTheme} />} />
         <Route path="/about" element={<About />} />
+        <Route path="/verify-login" element={<VerifyLogin />} />
 
       </Routes>
 
@@ -144,6 +146,7 @@ function App() {
             setShowLogin(false);
             setShowSignup(true);
           }}
+          currentTheme={currentTheme}
         />
       )}
       {showSignup && (
@@ -153,6 +156,7 @@ function App() {
             setShowSignup(false);
             setShowLogin(true);
           }}
+          currentTheme={currentTheme}
         />
       )}
     </div>
