@@ -3,7 +3,7 @@
 Welcome to the **Digital Diary** – a full-stack MERN (MongoDB, Express, React, Node.js) project built as a capstone to create a secure and visually appealing diary app.
 
 ## 🌐 Live URL
-> [Add your deployed frontend and backend URLs here once available]
+> []
 
 ---
 
