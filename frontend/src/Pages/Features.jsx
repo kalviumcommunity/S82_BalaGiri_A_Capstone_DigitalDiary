@@ -1,32 +1,82 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
-function Features() {
+function Features({ currentTheme }) {
+  const isDark = currentTheme?.text?.includes('E1E7FF') ?? false;
+  // Dynamic Theme Colors
+  const bgClass = isDark ? 'from-[#0B1026] via-[#1B2A4A] to-[#2C4870]' : 'from-[#B8D9F2] via-[#7EB6E6] to-[#4B92D4]';
+  const textClass = isDark ? 'text-white' : 'text-[#1B2942]';
+  const cardBg = isDark ? 'bg-[#1B2942]/60 border-white/10' : 'bg-white/60 border-white/40';
+  const cardText = isDark ? 'text-gray-300' : 'text-gray-700';
+
   const features = [
-    { emoji: '🗓️', title: 'Calendar-based Access', desc: 'Easily browse entries by date using an intuitive calendar view.' },
-    { emoji: '🔐', title: 'AES-256 Encryption', desc: 'Military-grade security to protect your sensitive diary content.' },
-    { emoji: '🧽', title: 'Entry Deletion', desc: 'Quickly remove unwanted entries with ease and safety.' },
-    { emoji: '📁', title: 'Organize by Month/Year', desc: 'Group entries by time periods for better structure.' },
-    { emoji: '📦', title: 'Optimized Media Storage', desc: 'Efficient storage with Cloudinary or S3 support.' },
+    { emoji: '🗓️', title: 'Calendar Access', desc: 'Navigate your journey through time with an intuitive calendar view.' },
+    { emoji: '🔐', title: 'AES-256 Encryption', desc: 'Military-grade protection ensures your deepest thoughts remain yours alone.' },
+    { emoji: '🗑️', title: 'Smart Deletion', desc: 'Remove entries safely with instant cleanup of associated media files.' },
+    { emoji: '📂', title: 'Organized Archives', desc: 'Automatically grouped by Month and Year for seamless browsing.' },
+    { emoji: '☁️', title: 'Hybrid Storage', desc: 'Optimized media handling with support for both efficient local and cloud storage.' },
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 text-gray-800 py-16 px-6 sm:px-12">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-10">✨ Upcoming Features</h1>
-        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-2">
+    <div className={`min-h-screen bg-gradient-to-b ${bgClass} ${textClass} pt-32 pb-20 px-6 sm:px-12`}>
+      <div className="max-w-6xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-16"
+        >
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4 drop-shadow-sm">
+            Powerful Features
+          </h1>
+          <p className={`text-lg sm:text-xl max-w-2xl mx-auto ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            Everything you need to chronicle your life securely and beautifully.
+          </p>
+        </motion.div>
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+        >
           {features.map((item, index) => (
-            <div
+            <motion.div
               key={index}
-              className="p-6 bg-white rounded-2xl shadow-md hover:shadow-xl transition duration-300 border border-blue-200"
+              variants={itemVariants}
+              whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+              className={`p-8 rounded-3xl shadow-lg border backdrop-blur-xl transition-colors ${cardBg}`}
             >
               <div className="flex items-center mb-4">
-                <span className="text-3xl mr-3">{item.emoji}</span>
-                <h3 className="text-xl font-semibold">{item.title}</h3>
+                <span className="text-4xl mr-4 filter drop-shadow-md">{item.emoji}</span>
+                <h3 className={`text-xl font-bold ${textClass}`}>{item.title}</h3>
               </div>
-              <p className="text-gray-600">{item.desc}</p>
-            </div>
+              <p className={`${cardText} leading-relaxed`}>{item.desc}</p>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

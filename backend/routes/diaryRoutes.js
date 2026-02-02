@@ -1,40 +1,50 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/multer');
+const authenticateToken = require('../middleware/auth');
 const DiaryEntry = require('../models/diaryentry');
 const {
   getEntryByTitle,
   updateEntry,
   deleteEntry,
+  createEntry,
+  getAllEntries
 } = require('../controllers/diaryController');
-const diaryController = require('../controllers/diaryController')
-// CREATE new diary entry
+
+router.get('/all', authenticateToken, getAllEntries);
+
 router.post(
   '/new',
+  authenticateToken,
   upload.fields([
     { name: 'photos', maxCount: 10 },
     { name: 'audio', maxCount: 1 }
   ]),
-  diaryController.createEntry 
+  createEntry
 );
 
+const { decrypt } = require('../utils/encryption');
 
-router.get('/latest', async (req, res) => {
+router.get('/latest', authenticateToken, async (req, res) => {
   try {
-    const latest = await DiaryEntry.find().sort({ date: -1 }).limit(3);
-    res.status(200).json(latest);
+    const latest = await DiaryEntry.find({ user: req.user.id }).sort({ date: -1 }).limit(3);
+    // Decrypt content
+    const decryptedLatest = latest.map(entry => ({
+      ...entry.toObject(),
+      content: decrypt(entry.content)
+    }));
+    res.status(200).json(decryptedLatest);
   } catch (err) {
     console.error('Fetch latest entries error:', err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// GET entry by title (for search)
-router.get('/search', getEntryByTitle);
+router.get('/search', authenticateToken, getEntryByTitle);
 
-// UPDATE diary entry by ID
 router.put(
   '/update/:id',
+  authenticateToken,
   upload.fields([
     { name: 'photos', maxCount: 10 },
     { name: 'audio', maxCount: 1 }
@@ -42,7 +52,7 @@ router.put(
   updateEntry
 );
 
-// DELETE diary entry by ID
-router.delete('/delete/:id', deleteEntry);
+
+router.delete('/delete/:id', authenticateToken, deleteEntry);
 
 module.exports = router;

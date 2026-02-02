@@ -2,71 +2,112 @@ import { useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
-const Login = ({ onClose, switchToSignup }) => {
+const Login = ({ onClose, switchToSignup, currentTheme }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       });
-  
+
       const data = await res.json();
-  
+
       if (res.ok) {
-        alert("Login successful!");
+        if (!data.token) {
+          alert("Login succeeded but no token received!");
+          return;
+        }
         localStorage.setItem("token", data.token);
-        navigate("/diary"); 
-        onClose(); 
+        navigate("/diary");
+        onClose();
       } else {
         alert(data.message || "Login failed");
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("Something went wrong");
+    } catch (err) {
+      alert("Something went wrong during login.");
     }
   };
-  
+
+  const handleMagicLink = async () => {
+    if (!email) {
+      alert("Please enter your email address.");
+      return;
+    }
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/magic-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      if (res.ok) {
+        alert("Magic link sent! Check your email.");
+      } else {
+        const data = await res.json();
+        alert(data.message || "Failed to send magic link");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong sending the magic link.");
+    }
+  };
+
+  const isDark = currentTheme?.text?.includes('E1E7FF');
+  const overlayBg = isDark ? 'bg-[#1B2A4A]/60 border border-white/10' : 'bg-white/60 border border-white/40';
+  const textColor = isDark ? 'text-white' : 'text-slate-800';
+  const inputBg = isDark ? 'bg-black/20 focus:bg-black/30' : 'bg-white/40 focus:bg-white/60';
+  const placeholderColor = isDark ? 'placeholder-white/60' : 'placeholder-slate-500';
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 backdrop-blur-sm z-50">
-      <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-xl p-8 text-white w-[350px] relative shadow-2xl">
-        <button onClick={onClose} className="absolute top-3 right-3 text-white">
-          <X size={20} />
+    <div className="fixed inset-0 flex justify-center items-center bg-black/40 backdrop-blur-sm z-50">
+      <div className={`${overlayBg} backdrop-blur-xl rounded-2xl p-8 w-[400px] relative shadow-2xl transition-all ${textColor}`}>
+        <button onClick={onClose} className={`absolute top-4 right-4 p-1 rounded-full hover:bg-white/10 transition-colors ${textColor}`}>
+          <X size={24} />
         </button>
-        <h2 className="text-2xl font-semibold mb-6 text-center">Login</h2>
+        <h2 className="text-3xl font-bold mb-8 text-center tracking-tight">Welcome Back</h2>
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 mb-4 rounded bg-white/20 text-white"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 mb-4 rounded bg-white/20 text-white"
-        />
+        <div className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={`w-full px-5 py-3 rounded-xl ${inputBg} ${textColor} ${placeholderColor} focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition-all border border-transparent focus:border-cyan-400/30`}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={`w-full px-5 py-3 rounded-xl ${inputBg} ${textColor} ${placeholderColor} focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition-all border border-transparent focus:border-cyan-400/30`}
+          />
+        </div>
 
-        <button
-          onClick={handleLogin}
-          className="w-full bg-blue-300 text-blue-900 py-2 rounded font-bold hover:bg-blue-400"
-        >
-          Login
-        </button>
+        <div className="mt-8 space-y-3">
+          <button
+            onClick={handleLogin}
+            className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg shadow-cyan-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+          >
+            Login
+          </button>
 
-        <p className="mt-4 text-center text-sm">
+          <button
+            onClick={handleMagicLink}
+            className={`w-full py-3.5 rounded-xl font-semibold transition-all border ${isDark ? 'border-white/20 hover:bg-white/10' : 'border-slate-300 hover:bg-black/5'} ${textColor}`}
+          >
+            Continue with Magic Link
+          </button>
+        </div>
+
+        <p className="mt-6 text-center text-sm opacity-80">
           Don't have an account?{" "}
           <span
             onClick={switchToSignup}
-            className="text-blue-300 cursor-pointer hover:underline"
+            className="font-bold underline cursor-pointer hover:text-cyan-400 transition-colors"
           >
             Register
           </span>
