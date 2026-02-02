@@ -1,70 +1,245 @@
 import React from 'react';
-import { BookHeart } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  BookHeart,
+  Search,
+  Image as ImageIcon,
+  Mic,
+  Database,
+  Code2,
+  Server,
+  ShieldCheck,
+  Palette,
+  Layout,
+  Sparkles
+} from 'lucide-react';
 
 function LearnMore({ currentTheme }) {
-  // Fallback colors if currentTheme not provided
-  const text = currentTheme?.text || 'text-white';
-  const subtext = currentTheme?.subtext || 'text-gray-300';
-  const background = currentTheme?.background || 'from-gray-900 to-gray-800';
+  // Use a fallback theme if currentTheme is missing to prevent crashes
+  const theme = currentTheme || {
+    background: 'from-gray-900 via-gray-800 to-gray-900',
+    text: 'text-white',
+    subtext: 'text-gray-300'
+  };
+
+  const isDark = theme.background.includes('gray') || theme.background.includes('#0B1026');
+
+  // Optimization: Fallback color to prevent white flash on fast scroll
+  const fallbackBg = isDark ? 'bg-[#0B1026]' : 'bg-[#B8D9F2]';
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 30, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 80, damping: 20 }
+    }
+  };
+
+  const features = [
+    {
+      icon: <BookHeart className="w-6 h-6" />,
+      title: "Rich Entries",
+      description: "Create detailed entries with titles, content, mood tracking, and timestamps.",
+      bg: "bg-pink-500",
+      text: isDark ? "text-pink-300" : "text-pink-600"
+    },
+    {
+      icon: <ImageIcon className="w-6 h-6" />,
+      title: "Media Support",
+      description: "Enhance your memories by attaching multiple photos to every entry.",
+      bg: "bg-blue-500",
+      text: isDark ? "text-blue-300" : "text-blue-600"
+    },
+    {
+      icon: <Mic className="w-6 h-6" />,
+      title: "Voice Notes",
+      description: "Record your thoughts directly in the browser and attach audio clips.",
+      bg: "bg-purple-500",
+      text: isDark ? "text-purple-300" : "text-purple-600"
+    },
+    {
+      icon: <Search className="w-6 h-6" />,
+      title: "Smart Search",
+      description: "Instantly find past memories by searching through titles and content.",
+      bg: "bg-yellow-500",
+      text: isDark ? "text-yellow-300" : "text-yellow-700"
+    },
+    {
+      icon: <Palette className="w-6 h-6" />,
+      title: "Theming",
+      description: "Toggle between a soothing Dark Mode and a vibrant Light Mode.",
+      bg: "bg-teal-500",
+      text: isDark ? "text-teal-300" : "text-teal-700"
+    },
+    {
+      icon: <Layout className="w-6 h-6" />,
+      title: "Clean UI",
+      description: "Distraction-free interface focusing purely on your writing experience.",
+      bg: "bg-indigo-500",
+      text: isDark ? "text-indigo-300" : "text-indigo-700"
+    }
+  ];
+
+  const techStack = {
+    Frontend: [
+      { name: "React 18", icon: <Code2 className="w-4 h-4" />, color: isDark ? "text-blue-300" : "text-blue-700" },
+      { name: "Tailwind CSS", icon: <Palette className="w-4 h-4" />, color: isDark ? "text-teal-300" : "text-teal-700" },
+      { name: "Framer Motion", icon: <Layout className="w-4 h-4" />, color: isDark ? "text-purple-300" : "text-purple-700" },
+      { name: "Lucide Icons", icon: <ImageIcon className="w-4 h-4" />, color: isDark ? "text-orange-300" : "text-orange-700" },
+    ],
+    Backend: [
+      { name: "Node.js", icon: <Server className="w-4 h-4" />, color: isDark ? "text-green-300" : "text-green-700" },
+      { name: "Express", icon: <Server className="w-4 h-4" />, color: isDark ? "text-gray-300" : "text-gray-700" },
+      { name: "MongoDB", icon: <Database className="w-4 h-4" />, color: isDark ? "text-green-300" : "text-green-700" },
+      { name: "JWT Auth", icon: <ShieldCheck className="w-4 h-4" />, color: isDark ? "text-yellow-300" : "text-yellow-700" },
+    ]
+  };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${background} px-6 py-24 flex justify-center`}>
-      {/* White-ish container with rounded corners and shadow */}
-      <div className="max-w-4xl bg-white bg-opacity-10 backdrop-blur-md rounded-lg shadow-lg p-10 space-y-10 text-left">
-        <div className={`flex items-center space-x-3 text-4xl font-bold ${text}`}>
-          <BookHeart className="w-8 h-8" />
-          <h1>Digital Diary Features</h1>
-        </div>
+    <div className={`min-h-screen relative overflow-hidden ${fallbackBg} bg-gradient-to-br ${theme.background} pt-24 pb-12 px-4 sm:px-6 lg:px-8`}>
 
-        <div className="space-y-6 text-lg">
-          <div>
-            <h2 className={`text-2xl font-semibold ${text}`}>📝 Diary Entry Management</h2>
-            <ul className={`${subtext} list-disc list-inside`}>
-              <li>🧾 Title, Content, Mood, Date</li>
-              <li>🖼️ Upload multiple photos</li>
-              <li>🎙️ Record & attach audio</li>
-            </ul>
-          </div>
-
-          <div>
-            <h2 className={`text-2xl font-semibold ${text}`}>🔍 Search & View Entries</h2>
-            <ul className={`${subtext} list-disc list-inside`}>
-              <li>🔎 Real-time search by title</li>
-              <li>📅 View recent entries sorted by date</li>
-            </ul>
-          </div>
-
-          <div>
-            <h2 className={`text-2xl font-semibold ${text}`}>🧰 CRUD Operations</h2>
-            <ul className={`${subtext} list-disc list-inside`}>
-              <li>✅ Create - done</li>
-              <li>🔁 Update - done via modal</li>
-              <li>❌ Delete - planned</li>
-              <li>🔎 Read - search and view supported</li>
-            </ul>
-          </div>
-
-          <div>
-            <h2 className={`text-2xl font-semibold ${text}`}>💻 Tech Stack</h2>
-            <p className={`${subtext} font-semibold`}>Frontend:</p>
-            <ul className={`${subtext} list-disc list-inside`}>
-              <li>React + Tailwind CSS</li>
-              <li>lucide-react icons</li>
-              <li>NewEntryModal component</li>
-              <li>Audio recording via Web APIs</li>
-              <li>FormData API for file handling</li>
-            </ul>
-            <p className={`${subtext} font-semibold mt-2`}>Backend:</p>
-            <ul className={`${subtext} list-disc list-inside`}>
-              <li>Node.js + Express</li>
-              <li>MongoDB + Mongoose</li>
-              <li>Multer for file upload</li>
-              <li>JWT for authentication</li>
-              <li>Static file serving via /uploads</li>
-            </ul>
-          </div>
-        </div>
+      {/* Ambient Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          style={{ willChange: 'transform' }}
+          animate={{ x: [0, 50, 0], y: [0, -50, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className={`absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[100px] opacity-20 transform-gpu ${isDark ? 'bg-purple-600' : 'bg-blue-300'}`}
+        />
+        <motion.div
+          style={{ willChange: 'transform' }}
+          animate={{ x: [0, -50, 0], y: [0, 50, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className={`absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full blur-[120px] opacity-20 transform-gpu ${isDark ? 'bg-blue-600' : 'bg-cyan-300'}`}
+        />
       </div>
+
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 max-w-6xl mx-auto space-y-20"
+      >
+        {/* Hero Section */}
+        <motion.div variants={itemVariants} className="text-center space-y-6">
+          <motion.div
+            className={`inline-flex items-center justify-center p-4 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl mb-6 ${theme.text}`}
+            whileHover={{ scale: 1.1, rotate: 10 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <Sparkles className="w-12 h-12 text-yellow-500" />
+          </motion.div>
+          <h1 className={`text-5xl md:text-7xl font-extrabold tracking-tight ${theme.text} drop-shadow-xl`}>
+            More Than Just <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+              A Diary
+            </span>
+          </h1>
+          <p className={`text-lg md:text-xl max-w-3xl mx-auto leading-relaxed ${theme.subtext}`}>
+            Experience the perfect blend of security, simplicity, and modern design.
+            From mood tracking to voice notes, we've built the ultimate companion for your thoughts.
+          </p>
+        </motion.div>
+
+        {/* Features Grid */}
+        <motion.div variants={itemVariants}>
+          <div className="flex items-center justify-center gap-3 mb-12">
+            <div className="h-px w-12 bg-gray-500/50"></div>
+            <h2 className={`text-2xl font-bold uppercase tracking-widest ${theme.text} opacity-80`}>Power Features</h2>
+            <div className="h-px w-12 bg-gray-500/50"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                whileHover={{ y: -8, scale: 1.02 }}
+                className={`group relative p-8 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 overflow-hidden hover:border-white/20 transition-all duration-300 shadow-xl`}
+              >
+                {/* Hover Gradient Bloom */}
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-br from-white/10 to-transparent`} />
+
+                <div className={`relative p-3 rounded-2xl w-fit mb-6 ${feature.bg} bg-opacity-20 ${feature.text} group-hover:bg-opacity-30 transition-all`}>
+                  {feature.icon}
+                </div>
+                <h3 className={`text-2xl font-bold mb-3 ${theme.text}`}>
+                  {feature.title}
+                </h3>
+                <p className={`${theme.subtext} leading-relaxed`}>
+                  {feature.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Tech Stack Section */}
+        <motion.div variants={itemVariants} className="relative rounded-[2.5rem] p-10 overflow-hidden border border-white/10 shadow-2xl">
+          <div className={`absolute inset-0 bg-white/5 backdrop-blur-md`}></div>
+          {/* Decorative corner blob */}
+          <div className={`absolute -top-40 -right-40 w-80 h-80 rounded-full blur-[80px] opacity-30 ${isDark ? 'bg-pink-600' : 'bg-pink-300'} pointer-events-none`}></div>
+
+          <div className="relative z-10">
+            <h2 className={`text-3xl font-bold text-center mb-16 ${theme.text}`}>Built With The Best</h2>
+
+            <div className="grid md:grid-cols-2 gap-16">
+              {/* Frontend Column */}
+              <div className="space-y-8">
+                <h3 className={`text-xl font-bold uppercase tracking-wider text-center ${theme.text} border-b border-white/10 pb-4`}>
+                  Frontend Ecosystem
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {techStack.Frontend.map((tech, idx) => (
+                    <motion.div
+                      key={idx}
+                      whileHover={{ scale: 1.05, x: 5 }}
+                      className={`flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all ${theme.text}`}
+                    >
+                      <div className={`p-2 rounded-lg bg-white/5 ${tech.color} bg-opacity-10`}>
+                        {tech.icon}
+                      </div>
+                      <span className="font-semibold">{tech.name}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Backend Column */}
+              <div className="space-y-8">
+                <h3 className={`text-xl font-bold uppercase tracking-wider text-center ${theme.text} border-b border-white/10 pb-4`}>
+                  Backend Architecture
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {techStack.Backend.map((tech, idx) => (
+                    <motion.div
+                      key={idx}
+                      whileHover={{ scale: 1.05, x: 5 }}
+                      className={`flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all ${theme.text}`}
+                    >
+                      <div className={`p-2 rounded-lg bg-white/5 ${tech.color} bg-opacity-10`}>
+                        {tech.icon}
+                      </div>
+                      <span className="font-semibold">{tech.name}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
