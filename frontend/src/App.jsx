@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BookHeart, Moon, Sun, User } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Routes, Route, useLocation, Link } from 'react-router-dom';
+import { Routes, Route, useLocation, Link, useNavigate } from 'react-router-dom';
 import Login from './Pages/Login';
 import Signup from './Pages/Signup';
 import DiaryPage from './Pages/Dairypage';
@@ -11,16 +11,17 @@ import Contact from './Pages/Contact';
 import About from './Pages/About';
 import VerifyLogin from './Pages/VerifyLogin';
 import SuccessAnimation from './components/SuccessAnimation';
-import useIdleTimer from './hooks/useIdleTimer';
 import GlobalDialog from './components/GlobalDialog';
+import { useAuth } from './context/AuthContext';
 
 function App() {
-  useIdleTimer(300000); // 5 minutes inactivity timeout
   const [isDark, setIsDark] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleLoginSuccess = (message = "Welcome Back!") => {
     setShowLogin(false);
@@ -177,7 +178,7 @@ function App() {
                 className="text-center"
               >
                 <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-6 sm:mb-8 tracking-tight leading-tight drop-shadow-2xl">
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 dark:from-white dark:to-slate-400">
+                  <span className={`bg-clip-text text-transparent bg-gradient-to-r ${isDark ? 'from-white to-slate-400' : 'from-slate-800 to-slate-600'}`}>
                     Your Life,
                   </span>
                   <br />
@@ -205,7 +206,7 @@ function App() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowLogin(true)}
+                  onClick={() => isAuthenticated ? navigate('/diary') : setShowLogin(true)}
                   className={`${currentTheme.button} px-8 py-3 sm:px-10 sm:py-4 rounded-2xl font-bold text-base sm:text-lg transition-all flex items-center gap-3 backdrop-blur-xl group relative overflow-hidden w-full sm:w-auto justify-center`}
                 >
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />

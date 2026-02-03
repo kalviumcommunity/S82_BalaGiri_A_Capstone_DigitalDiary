@@ -1,29 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 
-const useIdleTimer = (timeoutMs = 300000) => { // Default 5 minutes
+const useIdleTimer = (timeoutMs = 300000, onTimeout, isAuthenticated) => { // Default 5 minutes
     const [isIdle, setIsIdle] = useState(false);
-    const navigate = useNavigate();
     const lastActivityRef = useRef(Date.now());
 
-    const handleLogout = useCallback(() => {
-        localStorage.removeItem("token");
-        setIsIdle(true);
-        navigate('/');
-        // alert("You have been logged out due to inactivity."); 
-        // Commented out alert to match requirement "Show no UI changes". 
-        // Can be re-enabled or replaced with a toast if desired.
-    }, [navigate]);
-
     const resetTimer = useCallback(() => {
-        lastActivityRef.current = Date.now();
+        const now = Date.now();
+        lastActivityRef.current = now;
         if (isIdle) setIsIdle(false);
-        localStorage.setItem('lastActivity', Date.now().toString());
+        localStorage.setItem('lastActivity', now.toString());
     }, [isIdle]);
 
     useEffect(() => {
+        if (!isAuthenticated) return;
+
         // Events to detect activity
-        const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+        const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click', 'keypress'];
 
         // Throttle the reset to avoid performance issues
         let throttleTimer;
@@ -43,12 +35,11 @@ const useIdleTimer = (timeoutMs = 300000) => { // Default 5 minutes
         const intervalId = setInterval(() => {
             const storedLastActivity = localStorage.getItem('lastActivity');
             const lastActivity = storedLastActivity ? parseInt(storedLastActivity, 10) : lastActivityRef.current;
-
             const now = Date.now();
+
             if (now - lastActivity >= timeoutMs) {
-                if (localStorage.getItem('token')) { // Only logout if logged in
-                    handleLogout();
-                }
+                if (onTimeout) onTimeout();
+                setIsIdle(true);
             }
         }, 1000); // Check every second
 
@@ -56,10 +47,15 @@ const useIdleTimer = (timeoutMs = 300000) => { // Default 5 minutes
         const handleStorageChange = (event) => {
             if (event.key === 'token' && event.newValue === null) {
                 // Token removed in another tab
-                navigate('/');
+                if (onTimeout) onTimeout();
             }
         };
         window.addEventListener('storage', handleStorageChange);
+
+        // Initialize lastActivity if logged in and missing (recovery)
+        if (!localStorage.getItem('lastActivity')) {
+            resetTimer();
+        }
 
         return () => {
             events.forEach(event => {
@@ -69,9 +65,9 @@ const useIdleTimer = (timeoutMs = 300000) => { // Default 5 minutes
             window.removeEventListener('storage', handleStorageChange);
             if (throttleTimer) clearTimeout(throttleTimer);
         };
-    }, [handleLogout, resetTimer, navigate, timeoutMs]);
+    }, [resetTimer, timeoutMs, onTimeout, isAuthenticated]);
 
-    return isIdle;
+    return { isIdle, resetTimer };
 };
 
 export default useIdleTimer;

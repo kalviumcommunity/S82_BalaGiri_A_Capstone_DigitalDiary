@@ -29,6 +29,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
           return;
         }
         localStorage.setItem("token", data.token);
+        localStorage.setItem("lastActivity", Date.now().toString());
         navigate("/diary");
         if (onLoginSuccess) {
           onLoginSuccess();

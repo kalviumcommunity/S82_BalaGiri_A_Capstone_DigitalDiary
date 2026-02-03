@@ -4,6 +4,7 @@ import { X, Eye, EyeOff } from 'lucide-react';
 import { motion, useAnimation } from 'framer-motion';
 import FailureAnimation from '../components/FailureAnimation';
 import { useDialog } from '../context/DialogContext';
+import { useAuth } from '../context/AuthContext';
 
 const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }) => {
   const [email, setEmail] = useState("");
@@ -13,6 +14,7 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
   const navigate = useNavigate();
   const controls = useAnimation();
   const { alert } = useDialog();
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     try {
@@ -29,7 +31,7 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
           setError("Login succeeded but no token received!");
           return;
         }
-        localStorage.setItem("token", data.token);
+        login(data.token);
         navigate("/diary");
         if (onLoginSuccess) {
           onLoginSuccess();
