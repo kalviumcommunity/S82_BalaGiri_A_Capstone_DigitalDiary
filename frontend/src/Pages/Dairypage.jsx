@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { PenSquare, Calendar, Search, Trash2, Pencil, X, ChevronDown, ChevronRight, Filter, Sun, Moon } from 'lucide-react';
+import { useDialog } from '../context/DialogContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import NewEntryModal from '../components/NewEntry';
+import CustomAudioPlayer from '../components/CustomAudioPlayer';
 import { useNavigate } from 'react-router-dom';
 import CalendarView from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -16,6 +18,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const navigate = useNavigate();
+  const { alert, confirm } = useDialog();
 
   // If isDark is not passed (e.g. standalone test), try to derive it or default to true
   const isDarkMode = isDark !== undefined ? isDark : currentTheme?.text?.includes('E1E7FF');
@@ -32,7 +35,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const fetchEntries = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Please log in first.');
+      await alert('Please log in first.');
       navigate('/');
       return;
     }
@@ -50,7 +53,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     } catch (err) {
       console.error('Error fetching entries:', err);
       if (err.message === 'Session expired') {
-        alert('Session expired. Please login again.');
+        await alert('Session expired. Please login again.');
         localStorage.removeItem('token');
         navigate('/');
       }
@@ -58,11 +61,11 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this entry?')) return;
+    if (!await confirm('Are you sure you want to delete this entry?')) return;
 
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Please login to delete.');
+      await alert('Please login to delete.');
       navigate('/');
       return;
     }
@@ -80,7 +83,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       fetchEntries();
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Failed to delete entry.');
+      await alert('Failed to delete entry.');
     }
   };
 
@@ -120,12 +123,12 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   }, {});
 
   return (
-    <div className={`pt-24 px-4 md:px-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-[#4E71FF]/0' : ''}`}> {/* bg handled by App wrapper mostly */}
-      <div className="flex justify-between items-center mb-8">
+    <div className={`pt-20 sm:pt-24 px-4 md:px-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-[#4E71FF]/0' : ''}`}> {/* bg handled by App wrapper mostly */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 md:gap-0">
         <h1 className={`text-4xl font-bold ${text} tracking-tight drop-shadow-sm`}>
           My Diary
         </h1>
-        <div className="flex items-center space-x-4 relative">
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 md:space-x-4 relative w-full md:w-auto">
           <button
             onClick={() => setIsDark(!isDark)}
             className={`p-3 rounded-xl transition-colors shadow-lg flex items-center justify-center ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-yellow-300' : 'bg-white shadow-md border border-slate-100 text-orange-500 hover:bg-orange-50'} backdrop-blur-md`}
@@ -204,7 +207,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           style={{ transformOrigin: 'bottom right' }}
-          className={`fixed bottom-0 right-0 z-50 p-6 rounded-tl-3xl shadow-2xl backdrop-blur-xl border-t border-l ${isDarkMode ? 'bg-[#0f172a] border-cyan-500/30 shadow-cyan-500/20 text-cyan-400' : 'bg-[#0f172a] border-cyan-500/30 shadow-cyan-500/20 text-cyan-400'} transition-all group`}
+          className={`fixed bottom-0 right-0 z-50 p-4 sm:p-6 rounded-tl-3xl shadow-2xl backdrop-blur-xl border-t border-l ${isDarkMode ? 'bg-[#0f172a] border-cyan-500/30 shadow-cyan-500/20 text-cyan-400' : 'bg-[#0f172a] border-cyan-500/30 shadow-cyan-500/20 text-cyan-400'} transition-all group`}
           onClick={() => setIsFilterOpen(true)}
         >
           <Filter className="w-6 h-6" />
@@ -221,57 +224,62 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
                 onClick={() => setIsFilterOpen(false)}
                 className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
               />
-              <motion.div
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className={`fixed top-0 right-0 h-full w-80 z-50 p-6 ${isDarkMode ? 'bg-[#1B2A4A]/90 border-l border-white/10' : 'bg-white/90 border-l border-slate-200'} backdrop-blur-xl shadow-2xl overflow-y-auto`}
-              >
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className={`text-2xl font-bold ${text}`}>Filters</h3>
-                  <button onClick={() => setIsFilterOpen(false)} className={`p-2 rounded-full hover:bg-white/10 ${text}`}>
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="relative">
-                    <Search className={`absolute left-4 top-3.5 w-5 h-5 ${subtext}`} />
-                    <input
-                      type="text"
-                      placeholder="Search entries..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className={`w-full pl-12 pr-4 py-3 rounded-xl ${isDarkMode ? 'bg-black/20 focus:bg-black/30' : 'bg-black/5 focus:bg-white'} ${text} placeholder:${subtext} focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition-all border border-transparent`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-semibold mb-2 ${subtext}`}>Mood</label>
-                    <select
-                      value={selectedMood}
-                      onChange={(e) => setSelectedMood(e.target.value)}
-                      className={`w-full px-4 py-3 rounded-xl ${isDarkMode ? 'bg-black/20 focus:bg-black/30' : 'bg-black/5 focus:bg-white'} ${text} focus:outline-none focus:ring-2 focus:ring-cyan-400/50 appearance-none border border-transparent`}
-                    >
-                      <option value="" className="text-gray-800">All Moods</option>
-                      {[...new Set(entries.map(e => e.mood))].filter(Boolean).map(mood => (
-                        <option key={mood} value={mood} className="text-gray-800">{mood}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Clear Filters */}
-                  {(searchTerm || selectedMood || selectedDate) && (
+              <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                  className={`pointer-events-auto w-full max-w-md p-6 sm:p-8 rounded-3xl ${isDarkMode ? 'bg-[#1B2A4A]/90 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : 'bg-white/90 border border-slate-200 shadow-2xl'} backdrop-blur-2xl relative overflow-hidden mx-4`}
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className={`text-2xl font-bold ${text}`}>Filters</h3>
                     <button
-                      onClick={() => { setSearchTerm(''); setSelectedMood(''); setSelectedDate(null); }}
-                      className="w-full py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors text-sm font-semibold"
+                      onClick={() => setIsFilterOpen(false)}
+                      className={`p-2 rounded-full hover:bg-white/10 transition-colors ${text}`}
                     >
-                      Clear All Filters
+                      <X className="w-6 h-6" />
                     </button>
-                  )}
-                </div>
-              </motion.div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="relative">
+                      <Search className={`absolute left-4 top-3.5 w-5 h-5 ${subtext}`} />
+                      <input
+                        type="text"
+                        placeholder="Search entries..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className={`w-full pl-12 pr-4 py-4 rounded-xl ${isDarkMode ? 'bg-black/30 focus:bg-black/40' : 'bg-slate-100 focus:bg-white'} ${text} placeholder:${subtext} focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all border border-transparent`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-semibold mb-2 ${subtext}`}>Mood</label>
+                      <select
+                        value={selectedMood}
+                        onChange={(e) => setSelectedMood(e.target.value)}
+                        className={`w-full px-4 py-4 rounded-xl ${isDarkMode ? 'bg-black/30 focus:bg-black/40' : 'bg-slate-100 focus:bg-white'} ${text} focus:outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none border border-transparent`}
+                      >
+                        <option value="" className="text-gray-500">All Moods</option>
+                        {[...new Set(entries.map(e => e.mood))].filter(Boolean).map(mood => (
+                          <option key={mood} value={mood} className="text-gray-800">{mood}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Clear Filters */}
+                    {(searchTerm || selectedMood || selectedDate) && (
+                      <button
+                        onClick={() => { setSearchTerm(''); setSelectedMood(''); setSelectedDate(null); }}
+                        className="w-full py-3 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl transition-colors font-semibold"
+                      >
+                        Clear All Filters
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
             </>
           )}
         </AnimatePresence>
@@ -284,7 +292,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`${bgOverlay} backdrop-blur-2xl rounded-3xl p-16 text-center border ${borderColor} shadow-2xl flex flex-col items-center justify-center min-h-[400px]`}
+              className={`${bgOverlay} backdrop-blur-2xl rounded-3xl p-8 sm:p-16 text-center border ${borderColor} shadow-2xl flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px]`}
             >
               <motion.div
                 animate={{
@@ -320,14 +328,14 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
                 {monthEntries.map((entry) => (
                   <div
                     key={entry._id}
-                    className={`group rounded-3xl p-8 transition-all duration-300 border ${borderColor} shadow-lg hover:shadow-2xl hover:-translate-y-2 relative overflow-hidden backdrop-blur-md hover-glow`}
+                    className={`group rounded-3xl p-6 sm:p-8 transition-all duration-300 border ${borderColor} shadow-lg hover:shadow-2xl hover:-translate-y-2 relative overflow-hidden backdrop-blur-md hover-glow`}
                     style={{ backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.4)' : 'rgba(255, 255, 255, 0.6)', cursor: 'pointer' }}
                     onClick={(e) => {
                       if (e.target.closest('button')) return;
                       setViewEntry(entry);
                     }}
                   >
-                    <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                    <div className="absolute top-0 right-0 p-4 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                       <button onClick={() => setEntryToEdit(entry)} title="Edit" className="p-2 bg-white/10 rounded-full hover:bg-white/30 text-yellow-400 backdrop-blur-md">
                         <Pencil className="w-4 h-4" />
                       </button>
@@ -373,54 +381,78 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       {
         viewEntry && (
           <div className="fixed inset-0 flex justify-center items-center bg-black/60 backdrop-blur-sm z-50 p-4">
-            <div className={`bg-[#1e293b] rounded-3xl p-8 max-w-3xl w-full relative shadow-2xl overflow-y-auto max-h-[90vh] border border-white/10 text-white`}>
-              <button
-                onClick={() => setViewEntry(null)}
-                className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <h2 className="text-4xl font-bold mb-2 tracking-tight">{viewEntry.title}</h2>
-              <div className="flex items-center space-x-4 mb-8 text-sm text-gray-400 border-b border-white/5 pb-6">
-                <span className="flex items-center"><Calendar className="w-4 h-4 mr-1" /> {viewEntry.date}</span>
-                {viewEntry.mood && <span className="bg-cyan-900/30 text-cyan-300 px-3 py-1 rounded-full border border-cyan-500/20">{viewEntry.mood}</span>}
+            <div className={`bg-[#1e293b] rounded-3xl max-w-3xl w-full relative shadow-2xl max-h-[90vh] border border-white/10 text-white flex flex-col overflow-hidden mx-4`}>
+              {/* Fixed Header */}
+              <div className="p-6 sm:p-8 pb-0 shrink-0 relative">
+                <button
+                  onClick={() => setViewEntry(null)}
+                  className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white z-10"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                <h2 className="text-2xl sm:text-4xl font-bold mb-2 tracking-tight pr-10">{viewEntry.title}</h2>
+                <div className="flex flex-wrap items-center gap-2 sm:space-x-4 text-sm text-gray-400 border-b border-white/5 pb-6">
+                  <span className="flex items-center"><Calendar className="w-4 h-4 mr-1" /> {viewEntry.date}</span>
+                  {viewEntry.mood && <span className="bg-cyan-900/30 text-cyan-300 px-3 py-1 rounded-full border border-cyan-500/20">{viewEntry.mood}</span>}
+                </div>
               </div>
 
-              <div className="prose prose-invert max-w-none mb-8">
-                <p className="whitespace-pre-wrap text-lg leading-relaxed text-gray-200">{viewEntry.content}</p>
-              </div>
+              {/* Scrollable Content */}
+              <div className="overflow-y-auto p-6 sm:p-8 pt-6 custom-scrollbar">
+                <div className="prose prose-invert max-w-none mb-8">
+                  <p className="whitespace-pre-wrap text-lg leading-relaxed text-gray-200">{viewEntry.content}</p>
+                </div>
 
-              {/* Photos */}
-              {viewEntry.photos && viewEntry.photos.length > 0 && (
-                <div className="mb-8">
-                  <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-3">Photos</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {viewEntry.photos.map((photoUrl, idx) => (
-                      <img
-                        key={idx}
-                        src={`${import.meta.env.VITE_BACKEND_URL}${photoUrl}`}
-                        alt={`Diary photo ${idx + 1}`}
-                        className="w-full h-40 object-cover rounded-xl shadow-lg hover:scale-105 transition-transform cursor-pointer border border-white/5"
-                        onClick={() => window.open(`${import.meta.env.VITE_BACKEND_URL}${photoUrl}`, '_blank')}
-                      />
-                    ))}
+                {/* Photos */}
+                {viewEntry.photos && viewEntry.photos.length > 0 && (
+                  <div className="mb-8">
+                    <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-3">Photos</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {viewEntry.photos.map((photoUrl, idx) => (
+                        <img
+                          key={idx}
+                          src={`${import.meta.env.VITE_BACKEND_URL}${photoUrl}`}
+                          alt={`Diary photo ${idx + 1}`}
+                          className="w-full h-40 object-cover rounded-xl shadow-lg hover:scale-105 transition-transform cursor-pointer border border-white/5"
+                          onClick={() => window.open(`${import.meta.env.VITE_BACKEND_URL}${photoUrl}`, '_blank')}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Audio */}
-              {viewEntry.audio && (
-                <div className="mb-4 bg-white/5 p-4 rounded-xl border border-white/5">
-                  <p className="text-sm font-semibold mb-3 text-gray-400 uppercase tracking-wider">Voice Note</p>
-                  <audio controls className="w-full custom-audio">
-                    <source src={`${import.meta.env.VITE_BACKEND_URL}${viewEntry.audio}`} type="audio/mpeg" />
-                    Your browser does not support the audio element.
-                  </audio>
-                </div>
-              )}
+                {/* Audio */}
+                {viewEntry.audio && (
+                  <div className="mb-6">
+                    <p className="text-sm font-semibold mb-3 text-gray-400 uppercase tracking-wider pl-1">Voice Note</p>
+                    <CustomAudioPlayer
+                      src={`${import.meta.env.VITE_BACKEND_URL}${viewEntry.audio}`}
+                      isDarkMode={true} // Modal is always dark themed or follows logic? 
+                    // Wait, modal is dark themed: bg-[#1e293b]. So force dark mode or use prop.
+                    // viewEntry modal uses fixed dark styles: "bg-[#1e293b] ... text-white".
+                    // So yes, force dark mode for the player inside this specific modal.
+                    />
+                  </div>
+                )}
 
-              <div className="mt-8 pt-6 border-t border-white/5 flex justify-end gap-4">
-                <button onClick={() => { setEntryToEdit(viewEntry); setViewEntry(null); }} className="px-6 py-2 bg-yellow-600/20 text-yellow-500 rounded-lg hover:bg-yellow-600/30 font-medium transition-colors">Edit Entry</button>
+                <div className="mt-8 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <button
+                    onClick={async () => {
+                      if (await confirm('Are you sure you want to delete this entry?')) {
+                        handleDelete(viewEntry._id);
+                        setViewEntry(null);
+                      }
+                    }}
+                    className="w-full sm:w-auto px-6 py-2 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/10 font-medium transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
+                  <button onClick={() => { setEntryToEdit(viewEntry); setViewEntry(null); }} className="w-full sm:w-auto px-6 py-2 bg-yellow-600/20 text-yellow-500 rounded-xl hover:bg-yellow-600/30 font-medium transition-colors flex items-center justify-center space-x-2">
+                    <Pencil className="w-4 h-4" />
+                    <span>Edit Entry</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

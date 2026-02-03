@@ -2,8 +2,7 @@ import React from "react";
 import { CheckCircle, Lock, Mic, Image, Calendar, Code, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 
-const About = ({ currentTheme }) => {
-  const isDark = currentTheme?.text?.includes('E1E7FF') ?? false;
+const About = ({ currentTheme, isDark }) => {
   // Dynamic Theme Colors
   const bgClass = isDark ? 'from-[#0B1026] via-[#1B2A4A] to-[#2C4870]' : 'from-[#B8D9F2] via-[#7EB6E6] to-[#4B92D4]';
   const textClass = isDark ? 'text-white' : 'text-[#1B2942]';

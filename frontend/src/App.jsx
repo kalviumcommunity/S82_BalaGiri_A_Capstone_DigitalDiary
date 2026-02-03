@@ -11,8 +11,11 @@ import Contact from './Pages/Contact';
 import About from './Pages/About';
 import VerifyLogin from './Pages/VerifyLogin';
 import SuccessAnimation from './components/SuccessAnimation';
+import useIdleTimer from './hooks/useIdleTimer';
+import GlobalDialog from './components/GlobalDialog';
 
 function App() {
+  useIdleTimer(300000); // 5 minutes inactivity timeout
   const [isDark, setIsDark] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
@@ -54,20 +57,30 @@ function App() {
     <div className={`min-h-screen bg-gradient-to-br ${currentTheme.background} ${currentTheme.text} overflow-hidden font-sans bg-noise selection:bg-cyan-500/30`}>
       {location.pathname !== '/diary' && (
         <nav className="absolute top-0 w-full p-6 z-50">
-          <div className="max-w-7xl mx-auto flex justify-between items-center bg-white/5 backdrop-blur-2xl rounded-2xl px-6 py-4 border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
-            <div className="flex items-center space-x-2 text-white">
-              <BookHeart className="w-6 h-6 sm:w-8 sm:h-8" />
-              <span className="text-xl sm:text-2xl font-bold tracking-tight">MyDiary</span>
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-4 sm:gap-0 justify-between items-center bg-white/5 backdrop-blur-2xl rounded-2xl px-4 py-3 sm:px-6 sm:py-4 border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
+            <div className="flex items-center justify-between w-full sm:w-auto">
+              <div className="flex items-center space-x-2 text-white">
+                <BookHeart className="w-6 h-6 sm:w-8 sm:h-8" />
+                <span className="text-xl sm:text-2xl font-bold tracking-tight">MyDiary</span>
+              </div>
+              {/* Mobile Theme Toggle (Visible only on mobile) */}
+              <button
+                onClick={() => setIsDark(!isDark)}
+                className="p-2 rounded-full hover:bg-white/20 transition-colors text-white sm:hidden"
+              >
+                {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
             </div>
-            <div className="flex items-center space-x-4 sm:space-x-8 text-sm sm:text-base text-white font-medium">
+
+            <div className="flex items-center space-x-4 sm:space-x-8 text-sm sm:text-base text-white font-medium w-full sm:w-auto justify-center sm:justify-end">
               <Link to="/" className="hover:text-cyan-300 transition-colors">Home</Link>
               <Link to="/features" className="hover:text-cyan-300 transition-colors">Features</Link>
               <Link to="/about" className="hover:text-cyan-300 transition-colors">About</Link>
-
               <Link to="/contact" className="hover:text-cyan-300 transition-colors">Contact</Link>
+              {/* Desktop Theme Toggle */}
               <button
                 onClick={() => setIsDark(!isDark)}
-                className="p-2 rounded-full hover:bg-white/20 transition-colors text-white"
+                className="p-2 rounded-full hover:bg-white/20 transition-colors text-white hidden sm:block"
               >
                 {isDark ? <Sun className="w-5 h-5 sm:w-6 sm:h-6" /> : <Moon className="w-5 h-5 sm:w-6 sm:h-6" />}
               </button>
@@ -163,7 +176,7 @@ function App() {
                 transition={{ duration: 1, ease: "easeOut" }}
                 className="text-center"
               >
-                <h1 className="text-6xl sm:text-7xl md:text-8xl font-bold mb-8 tracking-tight leading-tight drop-shadow-2xl">
+                <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-6 sm:mb-8 tracking-tight leading-tight drop-shadow-2xl">
                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 dark:from-white dark:to-slate-400">
                     Your Life,
                   </span>
@@ -193,7 +206,7 @@ function App() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowLogin(true)}
-                  className={`${currentTheme.button} px-10 py-4 rounded-2xl font-bold text-lg transition-all flex items-center gap-3 backdrop-blur-xl group relative overflow-hidden`}
+                  className={`${currentTheme.button} px-8 py-3 sm:px-10 sm:py-4 rounded-2xl font-bold text-base sm:text-lg transition-all flex items-center gap-3 backdrop-blur-xl group relative overflow-hidden w-full sm:w-auto justify-center`}
                 >
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                   <User className="w-6 h-6 relative z-10" />
@@ -201,7 +214,7 @@ function App() {
                 </motion.button>
 
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Link to="/learn-more" className={`${currentTheme.buttonOutline} px-10 py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center`}>
+                  <Link to="/learn-more" className={`${currentTheme.buttonOutline} px-8 py-3 sm:px-10 sm:py-4 rounded-2xl font-bold text-base sm:text-lg transition-all flex items-center justify-center w-full sm:w-auto`}>
                     Learn More
                   </Link>
                 </motion.div>
@@ -261,10 +274,10 @@ function App() {
         } />
 
         <Route path="/diary" element={<DiaryPage currentTheme={currentTheme} isDark={isDark} setIsDark={setIsDark} />} />
-        <Route path="/features" element={<Features currentTheme={currentTheme} />} />
-        <Route path="/learn-more" element={<LearnMore currentTheme={currentTheme} />} />
-        <Route path="/contact" element={<Contact currentTheme={currentTheme} />} />
-        <Route path="/about" element={<About currentTheme={currentTheme} />} />
+        <Route path="/features" element={<Features currentTheme={currentTheme} isDark={isDark} />} />
+        <Route path="/learn-more" element={<LearnMore currentTheme={currentTheme} isDark={isDark} />} />
+        <Route path="/contact" element={<Contact currentTheme={currentTheme} isDark={isDark} />} />
+        <Route path="/about" element={<About currentTheme={currentTheme} isDark={isDark} />} />
         <Route path="/verify-login" element={<VerifyLogin />} />
 
       </Routes>
@@ -287,6 +300,7 @@ function App() {
               setShowSignup(true);
             }}
             currentTheme={currentTheme}
+            isDark={isDark}
             onLoginSuccess={() => handleLoginSuccess("Welcome Back!")}
           />
         )
@@ -300,10 +314,12 @@ function App() {
               setShowLogin(true);
             }}
             currentTheme={currentTheme}
+            isDark={isDark}
             onLoginSuccess={() => handleLoginSuccess("Account Created Successfully!")}
           />
         )
       }
+      <GlobalDialog isDark={isDark} />
     </div >
   );
 }
