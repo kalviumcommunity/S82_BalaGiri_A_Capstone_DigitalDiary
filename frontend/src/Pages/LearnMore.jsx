@@ -14,15 +14,13 @@ import {
   Sparkles
 } from 'lucide-react';
 
-function LearnMore({ currentTheme }) {
+function LearnMore({ currentTheme, isDark }) {
   // Use a fallback theme if currentTheme is missing to prevent crashes
   const theme = currentTheme || {
     background: 'from-gray-900 via-gray-800 to-gray-900',
     text: 'text-white',
     subtext: 'text-gray-300'
   };
-
-  const isDark = theme.background.includes('gray') || theme.background.includes('#0B1026');
 
   // Optimization: Fallback color to prevent white flash on fast scroll
   const fallbackBg = isDark ? 'bg-[#0B1026]' : 'bg-[#B8D9F2]';
@@ -107,7 +105,7 @@ function LearnMore({ currentTheme }) {
   };
 
   return (
-    <div className={`min-h-screen relative overflow-hidden ${fallbackBg} bg-gradient-to-br ${theme.background} pt-24 pb-12 px-4 sm:px-6 lg:px-8`}>
+    <div className={`min-h-screen relative overflow-hidden ${fallbackBg} bg-gradient-to-br ${theme.background} pt-36 pb-12 px-4 sm:px-6 lg:px-8`}>
 
       {/* Ambient Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -152,34 +150,50 @@ function LearnMore({ currentTheme }) {
           </p>
         </motion.div>
 
-        {/* Features Grid */}
-        <motion.div variants={itemVariants}>
-          <div className="flex items-center justify-center gap-3 mb-12">
-            <div className="h-px w-12 bg-gray-500/50"></div>
-            <h2 className={`text-2xl font-bold uppercase tracking-widest ${theme.text} opacity-80`}>Power Features</h2>
-            <div className="h-px w-12 bg-gray-500/50"></div>
+        {/* Timeline Features Section */}
+        <motion.div variants={itemVariants} className="relative">
+          <div className="flex items-center justify-center gap-3 mb-20">
+            <div className={`h-px w-12 ${isDark ? 'bg-white/20' : 'bg-black/10'}`}></div>
+            <h2 className={`text-2xl font-bold uppercase tracking-widest ${theme.text} opacity-80`}>Journey Through Features</h2>
+            <div className={`h-px w-12 ${isDark ? 'bg-white/20' : 'bg-black/10'}`}></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="relative max-w-5xl mx-auto">
+            {/* Central Line (Desktop center, Mobile left) */}
+            <div className={`absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 bg-gradient-to-b ${isDark ? 'from-transparent via-purple-500/50 to-transparent' : 'from-transparent via-blue-400/50 to-transparent'}`} />
+
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                variants={itemVariants}
-                whileHover={{ y: -8, scale: 1.02 }}
-                className={`group relative p-8 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 overflow-hidden hover:border-white/20 transition-all duration-300 shadow-xl`}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.6, type: "spring", bounce: 0.3 }}
+                className={`relative flex items-center mb-16 md:mb-24 ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
+                  }`}
               >
-                {/* Hover Gradient Bloom */}
-                <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-br from-white/10 to-transparent`} />
+                {/* Desktop Spacer */}
+                <div className="hidden md:block w-5/12" />
 
-                <div className={`relative p-3 rounded-2xl w-fit mb-6 ${feature.bg} bg-opacity-20 ${feature.text} group-hover:bg-opacity-30 transition-all`}>
-                  {feature.icon}
+                {/* Center Dot */}
+                <div className="absolute left-4 md:left-1/2 -translate-x-1/2 flex items-center justify-center w-8 h-8 md:w-12 md:h-12 rounded-full border-4 border-white/10 backdrop-blur-md z-10 shadow-lg bg-gradient-to-br from-white/20 to-white/5">
+                  <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full ${feature.bg} shadow-[0_0_10px_currentColor]`} />
                 </div>
-                <h3 className={`text-2xl font-bold mb-3 ${theme.text}`}>
-                  {feature.title}
-                </h3>
-                <p className={`${theme.subtext} leading-relaxed`}>
-                  {feature.description}
-                </p>
+
+                {/* Content Card */}
+                <div className="pl-16 md:pl-0 w-full md:w-5/12">
+                  <div className={`p-6 md:p-8 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl hover:border-white/20 hover:bg-white/10 transition-all duration-300 group`}>
+                    <div className={`p-3 rounded-xl w-fit mb-4 ${feature.bg} bg-opacity-10 ${feature.text}  group-hover:scale-110 transition-transform duration-300`}>
+                      {feature.icon}
+                    </div>
+                    <h3 className={`text-2xl font-bold mb-3 ${theme.text}`}>
+                      {feature.title}
+                    </h3>
+                    <p className={`${theme.subtext} leading-relaxed`}>
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>

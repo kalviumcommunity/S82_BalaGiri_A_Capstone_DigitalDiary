@@ -22,7 +22,7 @@ exports.signup = async (req, res) => {
     const token = jwt.sign(
       { id: newUser._id, email: newUser.email },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '5m' }
     );
 
     res.status(201).json({ token, user: { email: newUser.email, username: newUser.username } });
@@ -43,7 +43,7 @@ exports.loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '5m' });
 
     res.status(200).json({ token, user: { email: user.email, username: user.username } });
   } catch (err) {
@@ -100,7 +100,7 @@ exports.verifyMagicLink = async (req, res) => {
     user.magicLinkExpires = undefined;
     await user.save();
 
-    const jwtToken = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const jwtToken = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '5m' });
 
     res.status(200).json({ token: jwtToken, user: { email: user.email, username: user.username } });
 

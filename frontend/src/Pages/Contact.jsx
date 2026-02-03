@@ -1,8 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-function Contact({ currentTheme }) {
-  const isDark = currentTheme?.text?.includes('E1E7FF') ?? false;
+function Contact({ currentTheme, isDark }) {
   // Dynamic Theme Colors
   const bgClass = isDark ? 'from-[#0B1026] via-[#1B2A4A] to-[#2C4870]' : 'from-[#B8D9F2] via-[#7EB6E6] to-[#4B92D4]';
   const textClass = isDark ? 'text-white' : 'text-[#1B2942]';
@@ -15,7 +14,7 @@ function Contact({ currentTheme }) {
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, type: 'spring', stiffness: 100 }}
-        className={`max-w-xl w-full ${cardBg} backdrop-blur-xl rounded-3xl shadow-2xl p-10 text-center border relative overflow-hidden`}
+        className={`max-w-xl w-full ${cardBg} backdrop-blur-xl rounded-3xl shadow-2xl p-6 sm:p-10 text-center border relative overflow-hidden`}
       >
         {/* Glow effect */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-1 bg-cyan-400/50 shadow-[0_0_40px_rgba(34,211,238,0.6)]"></div>

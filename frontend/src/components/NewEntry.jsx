@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Image, Mic, MicOff } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const [title, setTitle] = useState('');
@@ -110,83 +111,97 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
         className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       ></div>
-      <div className={`relative ${modalBg} backdrop-blur-xl rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl transition-all transform`}>
-        <button
-          onClick={onClose}
-          className={`absolute top-6 right-6 ${textColor} hover:opacity-70 transition-opacity p-1 rounded-full hover:bg-white/10`}
-        >
-          <X className="w-6 h-6" />
-        </button>
+      <div className={`relative ${modalBg} backdrop-blur-xl rounded-3xl max-w-2xl w-full mx-4 shadow-2xl transition-all transform flex flex-col max-h-[90vh] overflow-hidden`}>
+        {/* Header */}
+        <div className="p-6 sm:p-8 pb-0 shrink-0 relative">
+          <button
+            onClick={onClose}
+            className={`absolute top-6 right-6 ${textColor} hover:opacity-70 transition-opacity p-1 rounded-full hover:bg-white/10`}
+          >
+            <X className="w-6 h-6" />
+          </button>
 
-        <h2 className={`text-3xl font-bold mb-8 ${textColor} tracking-tight`}>
-          {entry ? 'Edit Entry' : 'New Entry'}
-        </h2>
+          <h2 className={`text-3xl font-bold mb-6 ${textColor} tracking-tight`}>
+            {entry ? 'Edit Entry' : 'New Entry'}
+          </h2>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <input
-              type="text"
-              placeholder="Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className={`w-full px-6 py-4 rounded-2xl ${inputBg} ${textColor} text-xl font-medium placeholder:${subTextColor} focus:outline-none focus:ring-2 focus:ring-white/20 transition-all border ${borderColor}`}
-              required
-            />
+        {/* Scrollable Form */}
+        <div className="overflow-y-auto p-6 sm:p-8 pt-2 custom-scrollbar">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className={`w-full px-6 py-4 rounded-2xl ${inputBg} ${textColor} text-xl font-medium placeholder:${subTextColor} focus:outline-none focus:ring-2 focus:ring-white/20 transition-all border ${borderColor}`}
+                required
+              />
 
-            <textarea
-              placeholder="What's on your mind?"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className={`w-full px-6 py-4 rounded-2xl ${inputBg} ${textColor} text-lg placeholder:${subTextColor} min-h-[200px] focus:outline-none focus:ring-2 focus:ring-white/20 transition-all resize-none border ${borderColor}`}
-              required
-            />
+              <textarea
+                placeholder="What's on your mind?"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className={`w-full px-6 py-4 rounded-2xl ${inputBg} ${textColor} text-lg placeholder:${subTextColor} min-h-[200px] focus:outline-none focus:ring-2 focus:ring-white/20 transition-all resize-none border ${borderColor}`}
+                required
+              />
 
-            <input
-              type="text"
-              placeholder="Mood (e.g., Happy, Reflective)"
-              value={mood}
-              onChange={(e) => setMood(e.target.value)}
-              className={`w-full px-6 py-4 rounded-2xl ${inputBg} ${textColor} placeholder:${subTextColor} focus:outline-none focus:ring-2 focus:ring-white/20 transition-all border ${borderColor}`}
-            />
-          </div>
-
-          <div className="flex items-center justify-between pt-4">
-            <div className="flex space-x-3">
-              <label
-                className={`flex items-center space-x-2 px-4 py-3 rounded-xl cursor-pointer transition-all hover:bg-white/10 ${textColor} border ${borderColor}`}
-              >
-                <Image className="w-5 h-5" />
-                <span className="font-medium">Photos</span>
-                <input type="file" accept="image/*" multiple onChange={handlePhotoChange} className="hidden" />
-              </label>
-
-              <button
-                type="button"
-                onClick={isRecording ? stopRecording : startRecording}
-                className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all hover:bg-white/10 ${textColor} border ${borderColor} ${isRecording ? 'bg-red-500/10 text-red-500 border-red-500/20' : ''}`}
-              >
-                {isRecording ? (
-                  <>
-                    <MicOff className="w-5 h-5" />
-                    <span className="font-medium">Stop</span>
-                  </>
-                ) : (
-                  <>
-                    <Mic className="w-5 h-5" />
-                    <span className="font-medium">Record</span>
-                  </>
-                )}
-              </button>
+              <input
+                type="text"
+                placeholder="Mood (e.g., Happy, Reflective)"
+                value={mood}
+                onChange={(e) => setMood(e.target.value)}
+                className={`w-full px-6 py-4 rounded-2xl ${inputBg} ${textColor} placeholder:${subTextColor} focus:outline-none focus:ring-2 focus:ring-white/20 transition-all border ${borderColor}`}
+              />
             </div>
 
-            <button
-              type="submit"
-              className="bg-cyan-500/90 hover:bg-cyan-500 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              {entry ? 'Update' : 'Save'}
-            </button>
-          </div>
-        </form>
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 gap-4 sm:gap-0">
+              <div className="flex space-x-3">
+                <label
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-xl cursor-pointer transition-all hover:bg-white/10 ${textColor} border ${borderColor}`}
+                >
+                  <Image className="w-5 h-5" />
+                  <span className="font-medium">Photos</span>
+                  <input type="file" accept="image/*" multiple onChange={handlePhotoChange} className="hidden" />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={isRecording ? stopRecording : startRecording}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${isRecording ? 'bg-red-500/10 text-red-500 border-red-500/20' : `hover:bg-white/10 ${textColor} border ${borderColor}`}`}
+                >
+                  {isRecording ? (
+                    <>
+                      <div className="flex space-x-1 items-center h-4">
+                        {[1, 2, 3, 4].map((i) => (
+                          <motion.div
+                            key={i}
+                            animate={{ height: [4, 16, 4] }}
+                            transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
+                            className="w-1 bg-red-500 rounded-full"
+                          />
+                        ))}
+                      </div>
+                      <span className="font-semibold">Stop</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-5 h-5" />
+                      <span className="font-medium">Record</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <button
+                type="submit"
+                className="w-full sm:w-auto bg-cyan-500/90 hover:bg-cyan-500 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+              >
+                {entry ? 'Update' : 'Save'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
