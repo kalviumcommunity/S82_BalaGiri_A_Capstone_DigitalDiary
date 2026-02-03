@@ -13,12 +13,12 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const isDark = currentTheme?.text?.includes('E1E7FF');
   const textColor = isDark ? 'text-white' : 'text-slate-800';
   const subTextColor = isDark ? 'text-white/60' : 'text-slate-500';
-  // Glassmorphism background
+  // Premium Glassmorphism background
   const modalBg = isDark
-    ? 'bg-[#1B2A4A]/60 border border-white/10'
-    : 'bg-white/60 border border-white/40';
+    ? 'bg-[#0f172a]/80 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]'
+    : 'bg-white/80 border border-white/40 shadow-2xl';
 
-  const inputBg = isDark ? 'bg-black/20 focus:bg-black/30' : 'bg-white/40 focus:bg-white/60';
+  const inputBg = isDark ? 'bg-black/30 focus:bg-black/50 shadow-inner' : 'bg-slate-50/50 focus:bg-white shadow-sm';
   const borderColor = isDark ? 'border-white/10' : 'border-white/20';
 
   useEffect(() => {

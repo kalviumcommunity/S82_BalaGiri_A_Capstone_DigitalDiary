@@ -10,43 +10,51 @@ import LearnMore from './Pages/LearnMore';
 import Contact from './Pages/Contact';
 import About from './Pages/About';
 import VerifyLogin from './Pages/VerifyLogin';
+import SuccessAnimation from './components/SuccessAnimation';
 
 function App() {
   const [isDark, setIsDark] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const location = useLocation();
+
+  const handleLoginSuccess = (message = "Welcome Back!") => {
+    setShowLogin(false);
+    setShowSignup(false);
+    setSuccessMessage(message);
+  };
 
   const themes = {
     dark: {
-      background: 'from-[#0B1026] via-[#1B2A4A] to-[#2C4870]',
-      text: 'text-[#E1E7FF]',
-      subtext: 'text-[#B8C4E8]',
-      mountain1: 'bg-[#1B2942]',
-      mountain2: 'bg-[#243656]',
-      mountain3: 'bg-[#2C4870]',
-      button: 'backdrop-blur-lg bg-white/20 border-2 border-white/30 text-[#1B2942] hover:bg-white/30',
-      buttonOutline: 'backdrop-blur-lg bg-white/20 border-2 border-white/30 text-[#1B2942] hover:bg-white/30',
+      background: 'from-[#020617] via-[#0f172a] to-[#1e293b]', // Deep slate/night
+      text: 'text-[#F8FAFC]',
+      subtext: 'text-[#94A3B8]',
+      mountain1: 'bg-[#0f172a]',
+      mountain2: 'bg-[#1e293b]',
+      mountain3: 'bg-[#334155]',
+      button: 'backdrop-blur-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:shadow-[0_0_25px_rgba(255,255,255,0.1)] active:scale-95 transition-all duration-300',
+      buttonOutline: 'backdrop-blur-xl bg-transparent border border-white/20 text-white hover:bg-white/10 active:scale-95 transition-all duration-300',
     },
     light: {
-      background: 'from-[#B8D9F2] via-[#7EB6E6] to-[#4B92D4]',
-      text: 'text-[#1B2942]',
-      subtext: 'text-[#2C4870]',
-      mountain1: 'bg-[#7EB6E6]',
-      mountain2: 'bg-[#4B92D4]',
-      mountain3: 'bg-[#2C4870]',
-      button: 'backdrop-blur-lg bg-white/20 border-2 border-white/30 text-white hover:bg-white/30',
-      buttonOutline: 'backdrop-blur-lg bg-white/20 border-2 border-white/30 text-white hover:bg-white/30',
+      background: 'from-[#E0F2FE] via-[#BAE6FD] to-[#7DD3FC]', // Soft sky
+      text: 'text-[#0f172a]',
+      subtext: 'text-[#334155]',
+      mountain1: 'bg-[#7DD3FC]',
+      mountain2: 'bg-[#38BDF8]',
+      mountain3: 'bg-[#0EA5E9]',
+      button: 'backdrop-blur-xl bg-white/30 border border-white/40 text-[#0f172a] hover:bg-white/50 shadow-lg hover:shadow-xl active:scale-95 transition-all duration-300',
+      buttonOutline: 'backdrop-blur-xl bg-white/10 border border-white/40 text-[#0f172a] hover:bg-white/30 active:scale-95 transition-all duration-300',
     },
   };
 
   const currentTheme = isDark ? themes.dark : themes.light;
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${currentTheme.background} ${currentTheme.text} overflow-hidden`}>
+    <div className={`min-h-screen bg-gradient-to-br ${currentTheme.background} ${currentTheme.text} overflow-hidden font-sans bg-noise selection:bg-cyan-500/30`}>
       {location.pathname !== '/diary' && (
-        <nav className="absolute top-0 w-full p-4 sm:p-6 z-50">
-          <div className="max-w-7xl mx-auto flex justify-between items-center bg-white/10 backdrop-blur-md rounded-2xl px-6 py-3 border border-white/20 shadow-lg">
+        <nav className="absolute top-0 w-full p-6 z-50">
+          <div className="max-w-7xl mx-auto flex justify-between items-center bg-white/5 backdrop-blur-2xl rounded-2xl px-6 py-4 border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
             <div className="flex items-center space-x-2 text-white">
               <BookHeart className="w-6 h-6 sm:w-8 sm:h-8" />
               <span className="text-xl sm:text-2xl font-bold tracking-tight">MyDiary</span>
@@ -70,115 +78,147 @@ function App() {
 
       <Routes>
         <Route path="/" element={
-          <div className="relative min-h-screen overflow-hidden">
+          <div className="relative min-h-screen overflow-hidden flex flex-col justify-center items-center">
             {/* Animated Background Orbs */}
             <motion.div
               animate={{
                 x: [0, 100, -50, 0],
                 y: [0, -50, 50, 0],
-                scale: [1, 1.2, 0.9, 1]
+                scale: [1, 1.3, 0.9, 1],
+                opacity: [0.3, 0.5, 0.3]
               }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className={`absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-3xl opacity-20 ${isDark ? 'bg-indigo-600' : 'bg-blue-300'}`}
+              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+              className={`absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full blur-[100px] ${isDark ? 'bg-indigo-600/40 mix-blend-screen' : 'bg-blue-300/60 mix-blend-multiply'}`}
             />
             <motion.div
               animate={{
                 x: [0, -70, 30, 0],
                 y: [0, 80, -40, 0],
-                scale: [1, 1.1, 0.95, 1]
+                scale: [1, 1.2, 0.8, 1],
+                opacity: [0.3, 0.5, 0.3]
               }}
-              transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-              className={`absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full blur-3xl opacity-20 ${isDark ? 'bg-cyan-900' : 'bg-cyan-200'}`}
+              transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+              className={`absolute bottom-[-10%] left-[-10%] w-[700px] h-[700px] rounded-full blur-[100px] ${isDark ? 'bg-cyan-700/30 mix-blend-screen' : 'bg-cyan-200/60 mix-blend-multiply'}`}
+            />
+            <motion.div
+              animate={{
+                x: [0, 50, -50, 0],
+                y: [0, 50, -50, 0],
+                scale: [1, 1.1, 0.9, 1],
+                opacity: [0.1, 0.3, 0.1]
+              }}
+              transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+              className={`absolute top-[40%] left-[50%] transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[120px] ${isDark ? 'bg-purple-800/20 mix-blend-screen' : 'bg-purple-300/40 mix-blend-multiply'}`}
             />
 
-            <div className="absolute top-20 right-6 sm:top-24 sm:right-32 z-10">
+            <div className="absolute top-24 right-8 sm:top-28 sm:right-32 z-10 pointer-events-none">
               <motion.div
                 animate={{ scale: [1, 1.05, 1], rotate: [0, 5, -5, 0] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                className="relative w-24 h-24 sm:w-32 sm:h-32"
+                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                className="relative w-28 h-28 sm:w-40 sm:h-40"
               >
                 {isDark ? (
-                  <Moon className="w-full h-full text-[#E1E7FF] drop-shadow-[0_0_15px_rgba(225,231,255,0.5)]" />
+                  <Moon className="w-full h-full text-[#E1E7FF] drop-shadow-[0_0_30px_rgba(225,231,255,0.4)]" />
                 ) : (
-                  <Sun className="w-full h-full text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.6)]" />
+                  <Sun className="w-full h-full text-amber-100 drop-shadow-[0_0_40px_rgba(251,191,36,0.6)]" />
                 )}
-                <div className={`absolute inset-0 rounded-full blur-xl opacity-30 ${isDark ? 'bg-[#E1E7FF]' : 'bg-white'}`} />
+                {/* Glow behind the icon */}
+                <div className={`absolute inset-0 rounded-full blur-2xl opacity-40 ${isDark ? 'bg-[#E1E7FF]' : 'bg-amber-300'}`} />
               </motion.div>
             </div>
 
             {/* Floating Particles */}
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{
-                  x: Math.random() * window.innerWidth,
-                  y: Math.random() * window.innerHeight,
-                  opacity: 0
-                }}
-                animate={{
-                  y: [null, Math.random() * -100],
-                  opacity: [0, Math.random() * 0.8, 0]
-                }}
-                transition={{
-                  duration: Math.random() * 5 + 5,
-                  repeat: Infinity,
-                  ease: "linear",
-                  delay: Math.random() * 5
-                }}
-                className={`absolute rounded-full pointer-events-none
-                  ${i % 3 === 0 ? 'w-1 h-1' : i % 3 === 1 ? 'w-1.5 h-1.5' : 'w-2 h-2'}
-                  ${isDark ? 'bg-white shadow-[0_0_5px_white]' : 'bg-white shadow-[0_0_2px_white]'}`}
-              />
-            ))}
-
-            <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
-              <div className="text-center max-w-3xl">
-                <motion.h1
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                  className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 drop-shadow-lg"
-                >
-                  Welcome to Your Digital Diary
-                </motion.h1>
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0.7, 1, 0.7] }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                  className={`text-base sm:text-lg mb-8 sm:mb-12 ${currentTheme.subtext} font-medium tracking-wide`}
-                >
-                  Capture your thoughts, memories, and dreams in a beautiful and secure digital space.
-                  Your personal journey begins here.
-                </motion.p>
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(30)].map((_, i) => (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                  className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6"
+                  key={i}
+                  initial={{
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    opacity: 0,
+                    scale: 0
+                  }}
+                  animate={{
+                    y: [null, Math.random() * -150 - 50],
+                    opacity: [0, Math.random() * 0.6 + 0.2, 0],
+                    scale: [0, Math.random() * 1.5 + 0.5, 0]
+                  }}
+                  transition={{
+                    duration: Math.random() * 8 + 7,
+                    repeat: Infinity,
+                    ease: "linear",
+                    delay: Math.random() * 5
+                  }}
+                  className={`absolute rounded-full
+                    ${i % 4 === 0 ? 'w-1 h-1' : i % 4 === 1 ? 'w-1.5 h-1.5' : i % 4 === 2 ? 'w-2 h-2' : 'w-3 h-3 blur-[1px]'}
+                    ${isDark ? 'bg-white shadow-[0_0_8px_white]' : 'bg-white shadow-[0_0_4px_white]'}`}
+                />
+              ))}
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center justify-center px-4 max-w-5xl mx-auto mt-[-10vh]">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="text-center"
+              >
+                <h1 className="text-6xl sm:text-7xl md:text-8xl font-bold mb-8 tracking-tight leading-tight drop-shadow-2xl">
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 dark:from-white dark:to-slate-400">
+                    Your Life,
+                  </span>
+                  <br />
+                  <span className={`bg-clip-text text-transparent bg-gradient-to-r ${isDark ? 'from-cyan-300 to-indigo-400' : 'from-blue-600 to-cyan-500'}`}>
+                    Reimagined.
+                  </span>
+                </h1>
+              </motion.div>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+                className={`text-lg sm:text-xl md:text-2xl mb-12 max-w-2xl text-center ${isDark ? 'text-slate-300' : 'text-slate-600'} font-light leading-relaxed`}
+              >
+                Experience the most immersive digital diary. Capture moments, thoughts, and dreams in a secure sanctuary that feels as real as ink on paper.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
+                className="flex flex-col sm:flex-row justify-center items-center gap-6 w-full sm:w-auto"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowLogin(true)}
+                  className={`${currentTheme.button} px-10 py-4 rounded-2xl font-bold text-lg transition-all flex items-center gap-3 backdrop-blur-xl group relative overflow-hidden`}
                 >
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowLogin(true)}
-                    className={`${currentTheme.button} px-6 sm:px-8 py-3 rounded-full font-semibold transition-all flex items-center space-x-2 shadow-lg hover:shadow-xl hover:shadow-${isDark ? 'white/10' : 'blue-400/20'}`}
-                  >
-                    <User className="w-5 h-5" />
-                    <span>Get Started</span>
-                  </motion.button>
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Link to="/learn-more" className={`${currentTheme.buttonOutline} px-6 sm:px-8 py-3 rounded-full font-semibold transition-all shadow-lg hover:shadow-xl block`}>
-                      Learn More
-                    </Link>
-                  </motion.div>
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                  <User className="w-6 h-6 relative z-10" />
+                  <span className="relative z-10">Get Started</span>
+                </motion.button>
+
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link to="/learn-more" className={`${currentTheme.buttonOutline} px-10 py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center`}>
+                    Learn More
+                  </Link>
                 </motion.div>
-              </div>
+              </motion.div>
             </div>
 
             <div className="absolute bottom-0 w-full pointer-events-none z-0">
-              <svg className="w-full h-48 sm:h-64" viewBox="0 0 1440 320" preserveAspectRatio="none">
+              <svg className="w-full h-32 sm:h-48 md:h-64" viewBox="0 0 1440 320" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="gradientPath" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor={isDark ? '#1B2942' : '#7EB6E6'} stopOpacity="0.4" />
+                    <stop offset="100%" stopColor={isDark ? '#0f172a' : '#4B92D4'} stopOpacity="0.2" />
+                  </linearGradient>
+                </defs>
                 <motion.path
                   fill={isDark ? '#1B2942' : '#7EB6E6'}
-                  fillOpacity="0.6"
+                  fillOpacity="0.3"
                   initial={{ d: "M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" }}
                   animate={{
                     d: [
@@ -191,7 +231,7 @@ function App() {
                 />
                 <motion.path
                   fill={isDark ? '#243656' : '#4B92D4'}
-                  fillOpacity="0.8"
+                  fillOpacity="0.5"
                   initial={{ d: "M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,250.7C960,235,1056,181,1152,165.3C1248,149,1344,171,1392,181.3L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" }}
                   animate={{
                     d: [
@@ -204,7 +244,7 @@ function App() {
                 />
                 <motion.path
                   fill={isDark ? '#2C4870' : '#2C4870'}
-                  fillOpacity="1"
+                  fillOpacity="0.8"
                   initial={{ d: "M0,288L48,272C96,256,192,224,288,213.3C384,203,480,213,576,229.3C672,245,768,267,864,250.7C960,235,1056,181,1152,165.3C1248,149,1344,171,1392,181.3L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" }}
                   animate={{
                     d: [
@@ -220,7 +260,7 @@ function App() {
           </div>
         } />
 
-        <Route path="/diary" element={<DiaryPage />} />
+        <Route path="/diary" element={<DiaryPage currentTheme={currentTheme} isDark={isDark} setIsDark={setIsDark} />} />
         <Route path="/features" element={<Features currentTheme={currentTheme} />} />
         <Route path="/learn-more" element={<LearnMore currentTheme={currentTheme} />} />
         <Route path="/contact" element={<Contact currentTheme={currentTheme} />} />
@@ -229,27 +269,42 @@ function App() {
 
       </Routes>
 
-      {showLogin && (
-        <Login
-          onClose={() => setShowLogin(false)}
-          switchToSignup={() => {
-            setShowLogin(false);
-            setShowSignup(true);
-          }}
-          currentTheme={currentTheme}
-        />
-      )}
-      {showSignup && (
-        <Signup
-          onClose={() => setShowSignup(false)}
-          switchToLogin={() => {
-            setShowSignup(false);
-            setShowLogin(true);
-          }}
-          currentTheme={currentTheme}
-        />
-      )}
-    </div>
+      {
+        successMessage && (
+          <SuccessAnimation
+            message={successMessage}
+            onClose={() => setSuccessMessage("")}
+          />
+        )
+      }
+
+      {
+        showLogin && (
+          <Login
+            onClose={() => setShowLogin(false)}
+            switchToSignup={() => {
+              setShowLogin(false);
+              setShowSignup(true);
+            }}
+            currentTheme={currentTheme}
+            onLoginSuccess={() => handleLoginSuccess("Welcome Back!")}
+          />
+        )
+      }
+      {
+        showSignup && (
+          <Signup
+            onClose={() => setShowSignup(false)}
+            switchToLogin={() => {
+              setShowSignup(false);
+              setShowLogin(true);
+            }}
+            currentTheme={currentTheme}
+            onLoginSuccess={() => handleLoginSuccess("Account Created Successfully!")}
+          />
+        )
+      }
+    </div >
   );
 }
 
