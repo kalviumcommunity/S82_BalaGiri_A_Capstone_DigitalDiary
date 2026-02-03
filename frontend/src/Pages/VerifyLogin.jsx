@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const VerifyLogin = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [status, setStatus] = useState('Verifying...');
+    const { login } = useAuth();
 
     useEffect(() => {
         const token = searchParams.get('token');
@@ -23,7 +25,7 @@ const VerifyLogin = () => {
 
                 const data = await res.json();
                 if (res.ok) {
-                    localStorage.setItem('token', data.token);
+                    login(data.token);
                     setStatus("Login successful! Redirecting...");
                     setTimeout(() => navigate('/diary'), 1500);
                 } else {

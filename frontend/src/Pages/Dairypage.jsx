@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { PenSquare, Calendar, Search, Trash2, Pencil, X, ChevronDown, ChevronRight, Filter, Sun, Moon } from 'lucide-react';
+import { PenSquare, Calendar, Search, Trash2, Pencil, X, ChevronDown, ChevronRight, Filter, Sun, Moon, Home, LogOut } from 'lucide-react';
 import { useDialog } from '../context/DialogContext';
+import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import NewEntryModal from '../components/NewEntry';
 import CustomAudioPlayer from '../components/CustomAudioPlayer';
@@ -19,6 +20,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const navigate = useNavigate();
   const { alert, confirm } = useDialog();
+  const { logout } = useAuth();
 
   // If isDark is not passed (e.g. standalone test), try to derive it or default to true
   const isDarkMode = isDark !== undefined ? isDark : currentTheme?.text?.includes('E1E7FF');
@@ -36,7 +38,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     const token = localStorage.getItem('token');
     if (!token) {
       await alert('Please log in first.');
-      navigate('/');
+      logout();
       return;
     }
 
@@ -54,8 +56,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       console.error('Error fetching entries:', err);
       if (err.message === 'Session expired') {
         await alert('Session expired. Please login again.');
-        localStorage.removeItem('token');
-        navigate('/');
+        logout();
       }
     }
   };
@@ -66,7 +67,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     const token = localStorage.getItem('token');
     if (!token) {
       await alert('Please login to delete.');
-      navigate('/');
+      logout();
       return;
     }
 
@@ -122,19 +123,35 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     return acc;
   }, {});
 
+  const handleLogout = async () => {
+    if (await confirm("Are you sure you want to log out?")) {
+      logout();
+    }
+  };
+
   return (
     <div className={`pt-20 sm:pt-24 px-4 md:px-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-[#4E71FF]/0' : ''}`}> {/* bg handled by App wrapper mostly */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 md:gap-0">
-        <h1 className={`text-4xl font-bold ${text} tracking-tight drop-shadow-sm`}>
-          My Diary
-        </h1>
-        <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 md:space-x-4 relative w-full md:w-auto">
+        <div className="flex items-center gap-4">
           <button
-            onClick={() => setIsDark(!isDark)}
-            className={`p-3 rounded-xl transition-colors shadow-lg flex items-center justify-center ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-yellow-300' : 'bg-white shadow-md border border-slate-100 text-orange-500 hover:bg-orange-50'} backdrop-blur-md`}
-            title="Toggle Theme"
+            onClick={() => navigate('/')}
+            className={`p-2.5 rounded-xl transition-colors shadow-lg flex items-center justify-center ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-cyan-400' : 'bg-white shadow-md border border-slate-100 text-cyan-600 hover:bg-cyan-50'} backdrop-blur-md group`}
+            title="Go Home"
           >
-            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            <Home className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          </button>
+          <h1 className={`text-4xl font-bold ${text} tracking-tight drop-shadow-sm`}>
+            My Diary
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 md:space-x-4 relative w-full md:w-auto">
+
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className={`p-3 rounded-xl transition-colors shadow-lg flex items-center justify-center ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-cyan-400' : 'bg-white shadow-md border border-slate-100 text-cyan-600 hover:bg-cyan-50'} backdrop-blur-md`}
+            title="Filter Entries"
+          >
+            <Filter className="w-5 h-5" />
           </button>
 
           <button
@@ -144,6 +161,14 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
           >
             <Calendar className="w-5 h-5" />
             {selectedDate && <span className="ml-2 text-sm font-semibold hidden sm:inline">{selectedDate.toLocaleDateString()}</span>}
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className={`p-3 rounded-xl transition-colors shadow-lg flex items-center justify-center ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-cyan-400' : 'bg-white shadow-md border border-slate-100 text-cyan-600 hover:bg-cyan-50'} backdrop-blur-md`}
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
           </button>
 
           {/* Calendar Popover */}
@@ -202,15 +227,14 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       <div className="relative">
         {/* Floating Filter Trigger - Bottom Right Custom Style */}
         <motion.button
-          initial={{ x: 50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          style={{ transformOrigin: 'bottom right' }}
-          className={`fixed bottom-0 right-0 z-50 p-4 sm:p-6 rounded-tl-3xl shadow-2xl backdrop-blur-xl border-t border-l ${isDarkMode ? 'bg-[#0f172a] border-cyan-500/30 shadow-cyan-500/20 text-cyan-400' : 'bg-[#0f172a] border-cyan-500/30 shadow-cyan-500/20 text-cyan-400'} transition-all group`}
-          onClick={() => setIsFilterOpen(true)}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          whileHover={{ scale: 1.1, rotate: 15 }}
+          whileTap={{ scale: 0.9 }}
+          className={`fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-2xl backdrop-blur-xl border ${isDarkMode ? 'bg-[#0f172a]/90 border-cyan-500/30 shadow-cyan-500/20 text-yellow-300' : 'bg-white/90 border-slate-200 shadow-xl text-orange-500'} transition-all duration-300`}
+          onClick={() => setIsDark(!isDark)}
         >
-          <Filter className="w-6 h-6" />
+          {isDarkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
         </motion.button>
 
         {/* Filter Drawer Overlay */}
