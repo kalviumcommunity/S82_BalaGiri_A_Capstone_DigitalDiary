@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
-const Login = ({ onClose, switchToSignup, currentTheme }) => {
+const Login = ({ onClose, switchToSignup, currentTheme, onLoginSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
@@ -24,7 +24,11 @@ const Login = ({ onClose, switchToSignup, currentTheme }) => {
         }
         localStorage.setItem("token", data.token);
         navigate("/diary");
-        onClose();
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        } else {
+          onClose();
+        }
       } else {
         alert(data.message || "Login failed");
       }
