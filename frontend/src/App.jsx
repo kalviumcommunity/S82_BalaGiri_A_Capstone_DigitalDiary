@@ -14,45 +14,55 @@ import SuccessAnimation from './components/SuccessAnimation';
 import GlobalDialog from './components/GlobalDialog';
 import { useAuth } from './context/AuthContext';
 
+const themes = {
+  dark: {
+    background: 'from-[#020617] via-[#0f172a] to-[#1e293b]', // Deep slate/night
+    text: 'text-[#F8FAFC]',
+    subtext: 'text-[#94A3B8]',
+    mountain1: 'bg-[#0f172a]',
+    mountain2: 'bg-[#1e293b]',
+    mountain3: 'bg-[#334155]',
+    button: 'backdrop-blur-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:shadow-[0_0_25px_rgba(255,255,255,0.1)] active:scale-95 transition-all duration-300',
+    buttonOutline: 'backdrop-blur-xl bg-transparent border border-white/20 text-white hover:bg-white/10 active:scale-95 transition-all duration-300',
+  },
+  light: {
+    background: 'from-[#E0F2FE] via-[#BAE6FD] to-[#7DD3FC]', // Soft sky
+    text: 'text-[#0f172a]',
+    subtext: 'text-[#334155]',
+    mountain1: 'bg-[#7DD3FC]',
+    mountain2: 'bg-[#38BDF8]',
+    mountain3: 'bg-[#0EA5E9]',
+    button: 'backdrop-blur-xl bg-white/30 border border-white/40 text-[#0f172a] hover:bg-white/50 shadow-lg hover:shadow-xl active:scale-95 transition-all duration-300',
+    buttonOutline: 'backdrop-blur-xl bg-white/10 border border-white/40 text-[#0f172a] hover:bg-white/30 active:scale-95 transition-all duration-300',
+  },
+};
+
 function App() {
   const [isDark, setIsDark] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleLoginSuccess = (message = "Welcome Back!") => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleLoginSuccess = (message) => {
+    setSuccessMessage(message);
     setShowLogin(false);
     setShowSignup(false);
-    setSuccessMessage(message);
-  };
-
-  const themes = {
-    dark: {
-      background: 'from-[#020617] via-[#0f172a] to-[#1e293b]', // Deep slate/night
-      text: 'text-[#F8FAFC]',
-      subtext: 'text-[#94A3B8]',
-      mountain1: 'bg-[#0f172a]',
-      mountain2: 'bg-[#1e293b]',
-      mountain3: 'bg-[#334155]',
-      button: 'backdrop-blur-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:shadow-[0_0_25px_rgba(255,255,255,0.1)] active:scale-95 transition-all duration-300',
-      buttonOutline: 'backdrop-blur-xl bg-transparent border border-white/20 text-white hover:bg-white/10 active:scale-95 transition-all duration-300',
-    },
-    light: {
-      background: 'from-[#E0F2FE] via-[#BAE6FD] to-[#7DD3FC]', // Soft sky
-      text: 'text-[#0f172a]',
-      subtext: 'text-[#334155]',
-      mountain1: 'bg-[#7DD3FC]',
-      mountain2: 'bg-[#38BDF8]',
-      mountain3: 'bg-[#0EA5E9]',
-      button: 'backdrop-blur-xl bg-white/30 border border-white/40 text-[#0f172a] hover:bg-white/50 shadow-lg hover:shadow-xl active:scale-95 transition-all duration-300',
-      buttonOutline: 'backdrop-blur-xl bg-white/10 border border-white/40 text-[#0f172a] hover:bg-white/30 active:scale-95 transition-all duration-300',
-    },
   };
 
   const currentTheme = isDark ? themes.dark : themes.light;
+
+  /* Floating Particles - Memoized to prevent recalculation */
+  const particles = React.useMemo(() => [...Array(30)].map((_, i) => ({
+    id: i,
+    initialX: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+    initialY: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+    delay: Math.random() * 5,
+    duration: Math.random() * 8 + 7
+  })), []);
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${currentTheme.background} ${currentTheme.text} overflow-hidden font-sans bg-noise selection:bg-cyan-500/30`}>
@@ -141,14 +151,15 @@ function App() {
               </motion.div>
             </div>
 
-            {/* Floating Particles */}
+
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {[...Array(30)].map((_, i) => (
+              {particles.map((p, i) => (
                 <motion.div
-                  key={i}
+                  key={p.id}
                   initial={{
-                    x: Math.random() * window.innerWidth,
-                    y: Math.random() * window.innerHeight,
+                    x: p.initialX,
+                    y: p.initialY,
+
                     opacity: 0,
                     scale: 0
                   }}
@@ -158,10 +169,11 @@ function App() {
                     scale: [0, Math.random() * 1.5 + 0.5, 0]
                   }}
                   transition={{
-                    duration: Math.random() * 8 + 7,
+                    duration: p.duration,
                     repeat: Infinity,
                     ease: "linear",
-                    delay: Math.random() * 5
+                    delay: p.delay
+
                   }}
                   className={`absolute rounded-full
                     ${i % 4 === 0 ? 'w-1 h-1' : i % 4 === 1 ? 'w-1.5 h-1.5' : i % 4 === 2 ? 'w-2 h-2' : 'w-3 h-3 blur-[1px]'}

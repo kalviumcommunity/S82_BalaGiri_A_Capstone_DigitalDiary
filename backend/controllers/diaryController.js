@@ -1,5 +1,5 @@
 const DiaryEntry = require('../models/diaryentry');
-const { encrypt, decrypt } = require('../utils/encryption');
+// const { encrypt, decrypt } = require('../utils/encryption'); // REMOVED: Client-side E2EE only
 const fs = require('fs');
 const path = require('path');
 
@@ -14,7 +14,9 @@ exports.createEntry = async (req, res) => {
 
     const entry = new DiaryEntry({
       title: req.body.title,
-      content: encrypt(req.body.content),
+      content: req.body.content, // Already encrypted by client
+      iv: req.body.iv,
+      encryptedKey: req.body.encryptedKey,
       mood: req.body.mood,
       date: req.body.date,
       photos: photoPaths,
@@ -23,7 +25,7 @@ exports.createEntry = async (req, res) => {
     });
 
     await entry.save();
-    entry.content = decrypt(entry.content); // Return decrypted
+    // entry.content = decrypt(entry.content); // REMOVED
     res.status(201).json(entry);
   } catch (err) {
     console.error("Create entry error:", err);
@@ -45,7 +47,11 @@ exports.updateEntry = async (req, res) => {
     }
 
     const updateData = { title, mood, date };
-    if (content) updateData.content = encrypt(content);
+    if (content) {
+      updateData.content = content; // User must send encrypted content
+      if (req.body.iv) updateData.iv = req.body.iv;
+      if (req.body.encryptedKey) updateData.encryptedKey = req.body.encryptedKey;
+    }
 
     if (req.files['photos']) {
       updateData.photos = req.files['photos'].map((file) => `/uploads/photos/${file.filename}`);
@@ -56,7 +62,7 @@ exports.updateEntry = async (req, res) => {
     }
 
     const updated = await DiaryEntry.findByIdAndUpdate(id, updateData, { new: true });
-    updated.content = decrypt(updated.content);
+    // updated.content = decrypt(updated.content);
     res.status(200).json(updated);
   } catch (err) {
     console.error(err);
@@ -72,10 +78,8 @@ exports.getEntryByTitle = async (req, res) => {
       user: req.user.id
     });
 
-    const decryptedEntries = entries.map(entry => ({
-      ...entry.toObject(),
-      content: decrypt(entry.content)
-    }));
+    const decryptedEntries = entries; // Return raw encrypted data
+
 
     res.json(decryptedEntries);
   } catch (err) {
@@ -86,10 +90,7 @@ exports.getEntryByTitle = async (req, res) => {
 exports.getAllEntries = async (req, res) => {
   try {
     const entries = await DiaryEntry.find({ user: req.user.id }).sort({ date: -1 });
-    const decryptedEntries = entries.map(entry => ({
-      ...entry.toObject(),
-      content: decrypt(entry.content)
-    }));
+    const decryptedEntries = entries; // Return raw encrypted data
     res.json(decryptedEntries);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching entries', error: err });

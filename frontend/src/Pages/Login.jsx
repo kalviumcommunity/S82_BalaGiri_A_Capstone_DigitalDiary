@@ -5,6 +5,8 @@ import { motion, useAnimation } from 'framer-motion';
 import FailureAnimation from '../components/FailureAnimation';
 import { useDialog } from '../context/DialogContext';
 import { useAuth } from '../context/AuthContext';
+import { storePrivateKey } from '../utils/db';
+import { decryptPrivateKey } from '../utils/crypto';
 
 const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }) => {
   const [email, setEmail] = useState("");
@@ -14,7 +16,7 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
   const navigate = useNavigate();
   const controls = useAnimation();
   const { alert } = useDialog();
-  const { login } = useAuth();
+  const { login, setPrivateKey } = useAuth();
 
   const handleLogin = async () => {
     try {
@@ -31,7 +33,31 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
           setError("Login succeeded but no token received!");
           return;
         }
-        login(data.token);
+
+        // Store Encrypted Private Key if returned from server (Zero Knowledge Sync)
+        if (data.user?.encryptedPrivateKey && data.user?.salt) {
+          await storePrivateKey(data.user.id, {
+            encryptedPrivateKey: data.user.encryptedPrivateKey,
+            salt: data.user.salt,
+            iv: data.user.iv
+          });
+
+          // Decrypt Private Key and store in memory
+          try {
+            const privateKey = await decryptPrivateKey(
+              data.user.encryptedPrivateKey,
+              password,
+              data.user.salt,
+              data.user.iv
+            );
+            setPrivateKey(privateKey);
+          } catch (cryptoError) {
+            console.error("Failed to decrypt private key:", cryptoError);
+            // We don't block login, but user won't be able to read diary until they "unlock" or providing correct password (if it differed, which it shouldn't here)
+          }
+        }
+
+        login(data.token, data.user);
         navigate("/diary");
         if (onLoginSuccess) {
           onLoginSuccess();
