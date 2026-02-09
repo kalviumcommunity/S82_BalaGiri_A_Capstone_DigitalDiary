@@ -1,19 +1,11 @@
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
-    auth: {
-        user: 'ethereal.user@ethereal.email', // Replace with valid Ethereal credentials if needed, or environment variables
-        pass: 'ethereal.pass'
-    }
-});
-
-// For development/demo, we will use a test account if env vars are not set
+// Helper to get transporter based on environment
 const getTransporter = async () => {
+    // 1. Use Gmail/SMTP if configured in ENV (Preferred for Production/Real usage)
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         return nodemailer.createTransport({
-            service: 'gmail', // or configured host
+            service: process.env.EMAIL_SERVICE || 'gmail',
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
@@ -21,7 +13,8 @@ const getTransporter = async () => {
         });
     }
 
-    // Default to Ethereal for testing if no env provided
+    // 2. Fallback to Ethereal for development only if no env provided
+    console.warn("No EMAIL_USER/EMAIL_PASS in .env. Attempting to use Ethereal (Test Account)...");
     try {
         const testAccount = await nodemailer.createTestAccount();
         return nodemailer.createTransport({
@@ -41,10 +34,11 @@ const getTransporter = async () => {
 
 
 exports.sendMagicLinkEmail = async (email, link) => {
+
     const transporter = await getTransporter();
+
     if (!transporter) {
-        console.log("Magic Link (Simulated):", link);
-        return;
+        throw new Error("Email Configuration Error: Unable to create transport. Check server logs/env variables.");
     }
 
     const mailOptions = {
@@ -61,11 +55,8 @@ exports.sendMagicLinkEmail = async (email, link) => {
     `
     };
 
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Message sent: %s', info.messageId);
-        console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
-    } catch (error) {
-        console.error('Error sending email:', error);
-    }
+    // Let errors bubble up to the controller
+    const info = await transporter.sendMail(mailOptions);
+
+    return info;
 };

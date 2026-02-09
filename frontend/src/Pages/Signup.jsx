@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
-import { X, Eye, EyeOff } from 'lucide-react';
+import { X, Eye, EyeOff, Lock, Loader } from 'lucide-react';
 import { motion, useAnimation } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import FailureAnimation from '../components/FailureAnimation';
+import { useAuth } from '../context/AuthContext';
+import { generateKeyPair, encryptPrivateKey, exportKeyToJWK } from '../utils/crypto';
+import { storePrivateKey } from '../utils/db';
+
+
 
 const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }) => {
   const [username, setUsername] = useState("");
@@ -10,26 +15,76 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
+  const [isGeneratingKeys, setIsGeneratingKeys] = useState(false);
   const navigate = useNavigate();
+
   const controls = useAnimation();
+  const { login, setPrivateKey } = useAuth();
 
   const handleRegister = async () => {
     try {
+      if (!username || !email || !password) {
+        setError("All fields are required");
+        return;
+      }
+
+      setIsGeneratingKeys(true);
+
+      // 1. Generate RSA Key Pair
+      const keyPair = await generateKeyPair();
+
+      // 2. Encrypt Private Key with Password
+      const { encryptedPrivateKey, salt, iv } = await encryptPrivateKey(keyPair.privateKey, password);
+
+      // 3. Export Public Key for server
+      const publicKeyJWK = await exportKeyToJWK(keyPair.publicKey);
+      const publicKeyString = JSON.stringify(publicKeyJWK);
+
+      // 4. Send to Backend
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password })
+        body: JSON.stringify({
+          username,
+          email,
+          password, // Used for Auth only
+          publicKey: publicKeyString,
+          encryptedPrivateKey, // Syncing to backend
+          salt, // Syncing to backend
+          iv // Syncing to backend
+        })
       });
 
       const data = await res.json();
+      setIsGeneratingKeys(false);
 
       if (res.ok) {
         if (!data.token) {
           setError("Signup succeeded but no token received!");
           return;
         }
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("lastActivity", Date.now().toString());
+
+        // 5. Store Encrypted Private Key locally (Zero Knowledge Persistence)
+        // We append the IV to the encryptedPrivateKey string or store separately?
+        // db.js expects object { encryptedPrivateKey, salt, iv }
+        // We can just store what we generated.
+        // We need the User ID from the token or response to use as key in IDB.
+        // Usually data.user exists? Or decode token.
+        if (data.result?._id || data.user?._id) {
+          const userId = data.result?._id || data.user?._id;
+          await storePrivateKey(userId, {
+            encryptedPrivateKey,
+            salt,
+            iv
+          });
+        }
+
+        login(data.token, data.user);
+        // Set the private key in memory immediately since we just generated it
+        if (keyPair.privateKey) {
+          setPrivateKey(keyPair.privateKey);
+        }
+
         navigate("/diary");
         if (onLoginSuccess) {
           onLoginSuccess();
@@ -45,6 +100,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       }
     } catch (err) {
       console.error("Signup error:", err);
+      setIsGeneratingKeys(false);
       controls.start({
         x: [0, -10, 10, -10, 10, 0],
         transition: { duration: 0.5 }
@@ -52,6 +108,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       setError("Something went wrong during signup.");
     }
   };
+
 
 
   const overlayBg = isDark ? 'bg-[#1B2A4A]/60 border border-white/10' : 'bg-white/60 border border-white/40';
@@ -106,11 +163,20 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
         <div className="mt-8">
           <button
             onClick={handleRegister}
-            className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg shadow-cyan-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+            disabled={isGeneratingKeys}
+            className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg shadow-cyan-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
           >
-            Register
+            {isGeneratingKeys ? (
+              <>
+                <Loader className="animate-spin" size={20} />
+                <span>Generating Keys...</span>
+              </>
+            ) : (
+              "Register"
+            )}
           </button>
         </div>
+
 
         <p className="mt-6 text-center text-sm opacity-80">
           Already have an account?{" "}

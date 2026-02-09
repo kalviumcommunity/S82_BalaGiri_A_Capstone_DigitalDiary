@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PenSquare, Calendar, Search, Trash2, Pencil, X, ChevronDown, ChevronRight, Filter, Sun, Moon, Home, LogOut } from 'lucide-react';
 import { useDialog } from '../context/DialogContext';
 import { useAuth } from '../context/AuthContext';
@@ -8,7 +8,10 @@ import CustomAudioPlayer from '../components/CustomAudioPlayer';
 import { useNavigate } from 'react-router-dom';
 import CalendarView from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-import '../customCalendar.css'; // We will create this for styling
+import '../customCalendar.css';
+import UnlockModal from '../components/UnlockModal';
+import { getPrivateKey } from '../utils/db';
+import { decryptPrivateKey, decryptData, unwrapAESKey, base64ToArrayBuffer } from '../utils/crypto';
 
 function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,7 +23,12 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const navigate = useNavigate();
   const { alert, confirm } = useDialog();
-  const { logout } = useAuth();
+  const { logout, user, privateKey, setPrivateKey } = useAuth();
+
+  const [decryptedEntries, setDecryptedEntries] = useState([]);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState(null);
+  const [isDecrypting, setIsDecrypting] = useState(false);
 
   // If isDark is not passed (e.g. standalone test), try to derive it or default to true
   const isDarkMode = isDark !== undefined ? isDark : currentTheme?.text?.includes('E1E7FF');
@@ -30,11 +38,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const borderColor = isDarkMode ? 'border-white/10' : 'border-slate-200';
   const calendarTheme = isDarkMode ? 'dark-calendar' : 'light-calendar';
 
-  useEffect(() => {
-    fetchEntries();
-  }, []);
-
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) {
       await alert('Please log in first.');
@@ -59,9 +63,13 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
         logout();
       }
     }
-  };
+  }, [logout, alert]);
 
-  const handleDelete = async (id) => {
+  useEffect(() => {
+    fetchEntries();
+  }, [fetchEntries]);
+
+  const handleDelete = useCallback(async (id) => {
     if (!await confirm('Are you sure you want to delete this entry?')) return;
 
     const token = localStorage.getItem('token');
@@ -86,21 +94,21 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       console.error('Delete failed:', error);
       await alert('Failed to delete entry.');
     }
-  };
+  }, [confirm, alert, logout, fetchEntries]);
 
   const [selectedMood, setSelectedMood] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
 
-  const onDateChange = (date) => {
+  const onDateChange = useCallback((date) => {
     // If clicking already selected date, clear filter
     if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
       setSelectedDate(null);
     } else {
       setSelectedDate(date);
     }
-  };
+  }, [selectedDate]);
 
-  const filteredEntries = entries.filter((entry) => {
+  const filteredEntries = useMemo(() => decryptedEntries.filter((entry) => {
     const matchesSearch = entry.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMood = selectedMood ? entry.mood === selectedMood : true;
 
@@ -112,16 +120,26 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     }
 
     return matchesSearch && matchesMood && matchesDate;
-  });
+  }), [entries, searchTerm, selectedMood, selectedDate]);
 
   // Group entries by Month Year
-  const groupedEntries = filteredEntries.reduce((acc, entry) => {
+  const groupedEntries = useMemo(() => filteredEntries.reduce((acc, entry) => {
     const date = new Date(entry.date);
     const monthYear = date.toLocaleString('default', { month: 'long', year: 'numeric' });
     if (!acc[monthYear]) acc[monthYear] = [];
     acc[monthYear].push(entry);
     return acc;
-  }, {});
+  }, {}), [filteredEntries]);
+
+  const entryDates = useMemo(() => new Set(entries.map(e => e.date)), [entries]);
+
+  const tileContent = useCallback(({ date, view }) => {
+    if (view === 'month') {
+      const dateStr = date.toLocaleDateString('en-CA');
+      const hasEntry = entryDates.has(dateStr);
+      return hasEntry ? <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full mx-auto mt-1"></div> : null;
+    }
+  }, [entryDates]);
 
   const handleLogout = async () => {
     if (await confirm("Are you sure you want to log out?")) {
@@ -129,8 +147,67 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     }
   };
 
+  const handleUnlock = async (password) => {
+    setIsUnlocking(true);
+    setUnlockError(null);
+    try {
+      const storedKeyData = await getPrivateKey(user._id || user.id);
+      if (!storedKeyData) {
+        setUnlockError("No encrypted key found locally. Please re-login.");
+        return;
+      }
+      const pKey = await decryptPrivateKey(storedKeyData.encryptedPrivateKey, password, storedKeyData.salt, storedKeyData.iv);
+      setPrivateKey(pKey);
+    } catch (err) {
+      console.error(err);
+      setUnlockError("Incorrect password or key corruption.");
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
+  const processEntry = useCallback(async (entry) => {
+    // If already processed or not encrypted, return as is
+    if (!entry.encryptedKey || !entry.iv) return entry;
+
+    try {
+      // 1. Unwrap AES Key
+      const encryptedKeyBuffer = base64ToArrayBuffer(entry.encryptedKey);
+      const aesKey = await unwrapAESKey(encryptedKeyBuffer, privateKey);
+
+      // 2. Decrypt Content
+      const contentBuffer = base64ToArrayBuffer(entry.content);
+      const ivBuffer = base64ToArrayBuffer(entry.iv);
+      const decryptedContent = await decryptData(contentBuffer, ivBuffer, aesKey, true);
+
+      return { ...entry, content: decryptedContent, aesKey };
+    } catch (err) {
+      console.error("Failed to decrypt entry:", entry.title, err);
+      return { ...entry, content: "⚠️ Decryption Failed" };
+    }
+  }, [privateKey]);
+
+  useEffect(() => {
+    if (privateKey && entries.length > 0) {
+      setIsDecrypting(true);
+      Promise.all(entries.map(processEntry)).then(decrypted => {
+        setDecryptedEntries(decrypted);
+        setIsDecrypting(false);
+      });
+    } else {
+      setDecryptedEntries(entries);
+    }
+  }, [entries, privateKey, processEntry]);
+
   return (
     <div className={`pt-20 sm:pt-24 px-4 md:px-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-[#4E71FF]/0' : ''}`}> {/* bg handled by App wrapper mostly */}
+      {!privateKey && (
+        <UnlockModal
+          onUnlock={handleUnlock}
+          error={unlockError}
+          isUnlocking={isUnlocking}
+        />
+      )}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 md:gap-0">
         <div className="flex items-center gap-4">
           <button
@@ -183,13 +260,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
                     }}
                     value={selectedDate}
                     className="w-full rounded-xl border-none text-black"
-                    tileContent={({ date, view }) => {
-                      if (view === 'month') {
-                        const dateStr = date.toLocaleDateString('en-CA');
-                        const hasEntry = entries.some(e => e.date === dateStr);
-                        return hasEntry ? <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full mx-auto mt-1"></div> : null;
-                      }
-                    }}
+                    tileContent={tileContent}
                   />
                 </div>
                 <button

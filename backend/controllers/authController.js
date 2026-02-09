@@ -6,7 +6,7 @@ const { sendMagicLinkEmail } = require('../utils/emailService');
 
 exports.signup = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, publicKey, encryptedPrivateKey, salt, iv } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'User already exists' });
@@ -15,6 +15,10 @@ exports.signup = async (req, res) => {
       username,
       email,
       password,
+      publicKey,
+      encryptedPrivateKey,
+      salt,
+      iv
     });
 
     await newUser.save();
@@ -25,7 +29,14 @@ exports.signup = async (req, res) => {
       { expiresIn: '5m' }
     );
 
-    res.status(201).json({ token, user: { email: newUser.email, username: newUser.username } });
+    res.status(201).json({
+      token,
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        username: newUser.username
+      }
+    });
 
   } catch (err) {
     console.error('Signup error:', err);
@@ -45,7 +56,18 @@ exports.loginUser = async (req, res) => {
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '5m' });
 
-    res.status(200).json({ token, user: { email: user.email, username: user.username } });
+    res.status(200).json({
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        publicKey: user.publicKey,
+        encryptedPrivateKey: user.encryptedPrivateKey,
+        salt: user.salt,
+        iv: user.iv
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: "Login failed" });
   }
@@ -53,6 +75,7 @@ exports.loginUser = async (req, res) => {
 
 exports.requestMagicLink = async (req, res) => {
   const { email } = req.body;
+
   try {
     let user = await User.findOne({ email });
     // If user doesn't exist, Create one (optional strategy: only allow existing? Spec says "Auto-create user if not exists")
@@ -66,7 +89,6 @@ exports.requestMagicLink = async (req, res) => {
 
     await user.save();
 
-    const verifyUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-link/${token}`;
     // Note: In production with separate frontend, this URL usually points to frontend, which then calls API.
     // User request says: "On link click: Verify token...". Usually link -> frontend -> API.
     // I will point to frontend route /verify-login?token=...
@@ -77,8 +99,10 @@ exports.requestMagicLink = async (req, res) => {
     res.status(200).json({ message: 'Magic link sent to email' });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error sending magic link' });
+    console.error('[Auth] Error during magic link request:', err);
+
+    // If it's an email error, we might want to be explicit, but 500 is generally correct for server failure
+    res.status(500).json({ message: 'Error sending magic link. Please check email configuration.' });
   }
 };
 

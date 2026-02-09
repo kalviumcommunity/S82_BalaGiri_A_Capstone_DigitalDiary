@@ -6,7 +6,11 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String }, // Made optional
     magicLinkToken: { type: String },
-    magicLinkExpires: { type: Date }
+    magicLinkExpires: { type: Date },
+    publicKey: { type: String }, // JWK public key
+    encryptedPrivateKey: { type: String }, // Encrypted JWK private key
+    iv: { type: String }, // IV for private key encryption
+    salt: { type: String } // Salt used for key derivation
 });
 
 userSchema.pre('save', async function (next) {

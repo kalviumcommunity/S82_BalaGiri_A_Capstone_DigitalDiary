@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Image, Mic, MicOff } from 'lucide-react';
+import { X, Image, Mic, MicOff, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import { generateAESKey, encryptData, wrapAESKey, encryptFile, arrayBufferToBase64, importKeyFromJWK } from '../utils/crypto';
+
+const RECORDING_BARS = [1, 2, 3, 4];
 
 function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const [title, setTitle] = useState('');
@@ -10,6 +14,8 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const [audioBlob, setAudioBlob] = useState(null);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isEncrypting, setIsEncrypting] = useState(false);
+  const { user } = useAuth();
 
   const isDark = currentTheme?.text?.includes('E1E7FF');
   const textColor = isDark ? 'text-white' : 'text-slate-800';
@@ -25,6 +31,17 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   useEffect(() => {
     if (entry) {
       setTitle(entry.title || '');
+      // Note: If entry is already encrypted, we can't show it plainly without decryption!
+      // But NewEntry is used for EDITING too.
+      // If we are editing, we need to decrypt first.
+      // DiaryPage decrypts before showing "View Entry".
+      // Does it decrypt for "Edit"?
+      // DiaryPage passes `entryToEdit`.
+      // If `entryToEdit` content is encrypted string, we need to decrypt it.
+      // But NewEntry doesn't have decryption logic yet.
+      // And DiaryPage doesn't either (yet).
+      // For now, let's assume `entry` passed in is already decrypted or we will handle it later.
+      // Given the task order (NewEntry first), I'll just set it.
       setContent(entry.content || '');
       setMood(entry.mood || '');
     }
@@ -64,29 +81,59 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('content', content);
-    formData.append('mood', mood);
-    formData.append('date', new Date().toISOString().split('T')[0]);
-
-    photos.forEach(photo => {
-      formData.append('photos', photo);
-    });
-
-    if (audioBlob instanceof Blob) {
-      formData.append('audio', audioBlob, 'recording.mp3');
-    }
-
-    const url = entry
-      ? `${import.meta.env.VITE_BACKEND_URL}/api/diary/update/${entry._id}`
-      : `${import.meta.env.VITE_BACKEND_URL}/api/diary/new`;
-
-    const method = entry ? 'PUT' : 'POST';
-
-    const token = localStorage.getItem("token");
-
     try {
+      if (!user?.publicKey) {
+        alert("Encryption keys missing. Please log out and back in.");
+        return;
+      }
+
+      setIsEncrypting(true);
+
+      // 1. Generate AES Key for this entry
+      const entryKey = await generateAESKey();
+
+      // 2. Encrypt Content
+      const { encryptedData: encryptedContentBuffer, iv: contentIVBuffer } = await encryptData(content, entryKey);
+      const encryptedContent = arrayBufferToBase64(encryptedContentBuffer);
+      const iv = arrayBufferToBase64(contentIVBuffer);
+
+      // 3. Encrypt AES Key with User's Public Key
+      const publicKey = await importKeyFromJWK(JSON.parse(user.publicKey), "public");
+      const wrappedKeyBuffer = await wrapAESKey(entryKey, publicKey);
+      const encryptedKey = arrayBufferToBase64(wrappedKeyBuffer);
+
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('content', encryptedContent); // Encrypted
+      // Send IV for the content
+      formData.append('iv', iv);
+      // Send Encrypted AES Key
+      formData.append('encryptedKey', encryptedKey);
+      formData.append('mood', mood);
+      formData.append('date', new Date().toISOString().split('T')[0]);
+
+      // 4. Encrypt Photos
+      const encryptedPhotos = await Promise.all(photos.map(p => encryptFile(p, entryKey)));
+      encryptedPhotos.forEach((blob, index) => {
+        // Blob now includes IV prepended
+        formData.append('photos', blob, `photo_${index}.enc`);
+      });
+
+      // 5. Encrypt Audio
+      if (audioBlob instanceof Blob) {
+        const encryptedAudio = await encryptFile(audioBlob, entryKey);
+        // Blob now includes IV prepended
+        formData.append('audio', encryptedAudio, 'recording.enc');
+      }
+
+      const url = entry
+        ? `${import.meta.env.VITE_BACKEND_URL}/api/diary/update/${entry._id}`
+        : `${import.meta.env.VITE_BACKEND_URL}/api/diary/new`;
+
+      const method = entry ? 'PUT' : 'POST';
+
+      const token = localStorage.getItem("token");
+
       const res = await fetch(url, {
         method,
         body: formData,
@@ -98,10 +145,13 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to save entry');
 
-      onSave();
-      onClose();
+      onSave(); // Refresh list
+      onClose(); // Close modal
     } catch (err) {
       console.error('Upload error:', err);
+      alert('Failed to save entry. ' + err.message);
+    } finally {
+      setIsEncrypting(false);
     }
   };
 
@@ -174,7 +224,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                   {isRecording ? (
                     <>
                       <div className="flex space-x-1 items-center h-4">
-                        {[1, 2, 3, 4].map((i) => (
+                        {RECORDING_BARS.map((i) => (
                           <motion.div
                             key={i}
                             animate={{ height: [4, 16, 4] }}
@@ -195,9 +245,17 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
               </div>
               <button
                 type="submit"
-                className="w-full sm:w-auto bg-cyan-500/90 hover:bg-cyan-500 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                disabled={isEncrypting}
+                className="w-full sm:w-auto bg-cyan-500/90 hover:bg-cyan-500 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-wait flex items-center gap-2"
               >
-                {entry ? 'Update' : 'Save'}
+                {isEncrypting ? (
+                  <>
+                    <Lock className="w-4 h-4 animate-pulse" />
+                    <span>Encrypting...</span>
+                  </>
+                ) : (
+                  entry ? 'Update' : 'Save'
+                )}
               </button>
             </div>
           </form>
