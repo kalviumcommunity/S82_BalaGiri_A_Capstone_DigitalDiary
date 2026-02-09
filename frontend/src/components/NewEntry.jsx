@@ -112,18 +112,42 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
       formData.append('mood', mood);
       formData.append('date', new Date().toISOString().split('T')[0]);
 
-      // 4. Encrypt Photos
-      const encryptedPhotos = await Promise.all(photos.map(p => encryptFile(p, entryKey)));
+      // 4. Encrypt Photos & Prepare Metadata
+      const photoMetadata = [];
+      const encryptedPhotos = await Promise.all(photos.map(async (p) => {
+        const encryptedBlob = await encryptFile(p, entryKey);
+        // Extract IV from the blob (first 12 bytes)
+        const ivBuffer = await encryptedBlob.slice(0, 12).arrayBuffer();
+        const ivBase64 = arrayBufferToBase64(ivBuffer);
+
+        photoMetadata.push({
+          iv: ivBase64,
+          mimeType: p.type,
+          originalName: p.name // Encrypt this too if strictly required, but usually filename is less sensitive than content. For now, keeping as is.
+        });
+        return encryptedBlob;
+      }));
+
       encryptedPhotos.forEach((blob, index) => {
-        // Blob now includes IV prepended
         formData.append('photos', blob, `photo_${index}.enc`);
       });
+      formData.append('photoMetadata', JSON.stringify(photoMetadata));
 
-      // 5. Encrypt Audio
+      // 5. Encrypt Audio & Prepare Metadata
       if (audioBlob instanceof Blob) {
         const encryptedAudio = await encryptFile(audioBlob, entryKey);
-        // Blob now includes IV prepended
+        // Extract IV
+        const ivBuffer = await encryptedAudio.slice(0, 12).arrayBuffer();
+        const ivBase64 = arrayBufferToBase64(ivBuffer);
+
+        const audioMeta = {
+          iv: ivBase64,
+          mimeType: 'audio/mpeg', // or audioBlob.type
+          originalName: 'recording.mp3'
+        };
+
         formData.append('audio', encryptedAudio, 'recording.enc');
+        formData.append('audioMetadata', JSON.stringify(audioMeta));
       }
 
       const url = entry
