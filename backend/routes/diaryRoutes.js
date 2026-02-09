@@ -8,7 +8,8 @@ const {
   updateEntry,
   deleteEntry,
   createEntry,
-  getAllEntries
+  getAllEntries,
+  getFile
 } = require('../controllers/diaryController');
 
 router.get('/all', authenticateToken, getAllEntries);
@@ -37,6 +38,8 @@ router.get('/latest', authenticateToken, async (req, res) => {
 });
 
 router.get('/search', authenticateToken, getEntryByTitle);
+
+router.get('/file/:type/:filename', authenticateToken, getFile);
 
 router.put(
   '/update/:id',

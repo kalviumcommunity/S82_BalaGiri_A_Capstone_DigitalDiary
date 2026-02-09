@@ -11,7 +11,7 @@ import 'react-calendar/dist/Calendar.css';
 import '../customCalendar.css';
 import UnlockModal from '../components/UnlockModal';
 import { getPrivateKey } from '../utils/db';
-import { decryptPrivateKey, decryptData, unwrapAESKey, base64ToArrayBuffer } from '../utils/crypto';
+import { decryptPrivateKey, decryptData, unwrapAESKey, base64ToArrayBuffer, decryptFile } from '../utils/crypto';
 
 function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +29,91 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState(null);
   const [isDecrypting, setIsDecrypting] = useState(false);
+  // State for decrypted media URLs (Blob URLs)
+  const [mediaUrls, setMediaUrls] = useState({ photos: [], audio: null });
+  const [loadingMedia, setLoadingMedia] = useState(false);
+
+  useEffect(() => {
+    if (!viewEntry) {
+      setMediaUrls({ photos: [], audio: null });
+      return;
+    }
+
+    let isMounted = true;
+    const urlsToRevoke = [];
+
+    const decryptMedia = async () => {
+      setLoadingMedia(true);
+      const newMediaUrls = { photos: [], audio: null };
+      const token = localStorage.getItem('token');
+
+      try {
+        // Decrypt Photos
+        if (viewEntry.photos && viewEntry.photos.length > 0) {
+          newMediaUrls.photos = await Promise.all(viewEntry.photos.map(async (photo, idx) => {
+            // Handle legacy strings (skip or show placeholder)
+            if (typeof photo === 'string') return null;
+
+            try {
+              const filename = photo.path.split('/').pop();
+              const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/file/photos/${filename}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              if (!res.ok) throw new Error('Fetch failed');
+
+              const encryptedBlob = await res.blob();
+              const decryptedBlob = await decryptFile(encryptedBlob, viewEntry.aesKey, photo.mimeType);
+              const url = URL.createObjectURL(decryptedBlob);
+              urlsToRevoke.push(url);
+              return url;
+            } catch (e) {
+              console.error("Failed to load photo", idx, e);
+              return null;
+            }
+          }));
+        }
+
+        // Decrypt Audio
+        if (viewEntry.audio && typeof viewEntry.audio === 'object') {
+          try {
+            const filename = viewEntry.audio.path.split('/').pop();
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/file/audio/${filename}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Fetch failed');
+
+            const encryptedBlob = await res.blob();
+            const decryptedBlob = await decryptFile(encryptedBlob, viewEntry.aesKey, viewEntry.audio.mimeType);
+            const url = URL.createObjectURL(decryptedBlob);
+            urlsToRevoke.push(url);
+            newMediaUrls.audio = url;
+          } catch (e) {
+            console.error("Failed to load audio", e);
+          }
+        }
+
+        if (isMounted) {
+          setMediaUrls(newMediaUrls);
+        } else {
+          // specific cleanup if unmounted during async
+          urlsToRevoke.forEach(u => URL.revokeObjectURL(u));
+        }
+
+      } catch (err) {
+        console.error("Media decryption error", err);
+      } finally {
+        if (isMounted) setLoadingMedia(false);
+      }
+    };
+
+    decryptMedia();
+
+    return () => {
+      isMounted = false;
+      urlsToRevoke.forEach(u => URL.revokeObjectURL(u));
+    };
+  }, [viewEntry]);
+
 
   // If isDark is not passed (e.g. standalone test), try to derive it or default to true
   const isDarkMode = isDark !== undefined ? isDark : currentTheme?.text?.includes('E1E7FF');
@@ -498,34 +583,40 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
                   <p className="whitespace-pre-wrap text-lg leading-relaxed text-gray-200">{viewEntry.content}</p>
                 </div>
 
+                {loadingMedia && (
+                  <div className="flex justify-center p-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+                    <span className="ml-2 text-gray-400">Decrypting media...</span>
+                  </div>
+                )}
+
                 {/* Photos */}
-                {viewEntry.photos && viewEntry.photos.length > 0 && (
+                {!loadingMedia && mediaUrls.photos && mediaUrls.photos.length > 0 && (
                   <div className="mb-8">
                     <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-3">Photos</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {viewEntry.photos.map((photoUrl, idx) => (
-                        <img
-                          key={idx}
-                          src={`${import.meta.env.VITE_BACKEND_URL}${photoUrl}`}
-                          alt={`Diary photo ${idx + 1}`}
-                          className="w-full h-40 object-cover rounded-xl shadow-lg hover:scale-105 transition-transform cursor-pointer border border-white/5"
-                          onClick={() => window.open(`${import.meta.env.VITE_BACKEND_URL}${photoUrl}`, '_blank')}
-                        />
+                      {mediaUrls.photos.map((photoUrl, idx) => (
+                        photoUrl ? (
+                          <img
+                            key={idx}
+                            src={photoUrl}
+                            alt={`Diary photo ${idx + 1}`}
+                            className="w-full h-40 object-cover rounded-xl shadow-lg hover:scale-105 transition-transform cursor-pointer border border-white/5"
+                            onClick={() => window.open(photoUrl, '_blank')}
+                          />
+                        ) : null
                       ))}
                     </div>
                   </div>
                 )}
 
                 {/* Audio */}
-                {viewEntry.audio && (
+                {!loadingMedia && mediaUrls.audio && (
                   <div className="mb-6">
                     <p className="text-sm font-semibold mb-3 text-gray-400 uppercase tracking-wider pl-1">Voice Note</p>
                     <CustomAudioPlayer
-                      src={`${import.meta.env.VITE_BACKEND_URL}${viewEntry.audio}`}
-                      isDarkMode={true} // Modal is always dark themed or follows logic? 
-                    // Wait, modal is dark themed: bg-[#1e293b]. So force dark mode or use prop.
-                    // viewEntry modal uses fixed dark styles: "bg-[#1e293b] ... text-white".
-                    // So yes, force dark mode for the player inside this specific modal.
+                      src={mediaUrls.audio}
+                      isDarkMode={true}
                     />
                   </div>
                 )}
