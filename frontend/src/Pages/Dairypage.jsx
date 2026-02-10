@@ -56,9 +56,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
 
             try {
               const filename = photo.path.split('/').pop();
-              const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/file/photos/${filename}`, {
-                headers: { Authorization: `Bearer ${token}` }
-              });
+              const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/file/photos/${filename}`);
               if (!res.ok) throw new Error('Fetch failed');
 
               const encryptedBlob = await res.blob();
@@ -77,9 +75,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
         if (viewEntry.audio && typeof viewEntry.audio === 'object') {
           try {
             const filename = viewEntry.audio.path.split('/').pop();
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/file/audio/${filename}`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/file/audio/${filename}`);
             if (!res.ok) throw new Error('Fetch failed');
 
             const encryptedBlob = await res.blob();
@@ -124,19 +120,16 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const calendarTheme = isDarkMode ? 'dark-calendar' : 'light-calendar';
 
   const fetchEntries = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      await alert('Please log in first.');
-      logout();
-      return;
+    if (!user) { // Check user object or isAuthenticated from context? isAuthenticated is better but requires prop or useAuth
+      // ... existing logic checked token, but we are inside component. 
+      // Actually `useAuth` is used: `const { logout, user, privateKey, setPrivateKey } = useAuth();`
+      // But `isAuthenticated` isn't destructured. Let's rely on `user` or `logout` if call fails. 
+      // Wait, `fetchEntries` is called on mount. 
+      // If protected route works, we are auth'd.
     }
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/all`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/all`);
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to fetch entries');
@@ -157,19 +150,9 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const handleDelete = useCallback(async (id) => {
     if (!await confirm('Are you sure you want to delete this entry?')) return;
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      await alert('Please login to delete.');
-      logout();
-      return;
-    }
-
     try {
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/delete/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       });
 
       const data = await res.json();

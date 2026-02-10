@@ -156,14 +156,9 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
 
       const method = entry ? 'PUT' : 'POST';
 
-      const token = localStorage.getItem("token");
-
       const res = await fetch(url, {
         method,
         body: formData,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       const data = await res.json();

@@ -59,31 +59,9 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       setIsGeneratingKeys(false);
 
       if (res.ok) {
-        if (!data.token) {
-          setError("Signup succeeded but no token received!");
-          return;
-        }
-
-        // 5. Store Encrypted Private Key locally (Zero Knowledge Persistence)
-        // We append the IV to the encryptedPrivateKey string or store separately?
-        // db.js expects object { encryptedPrivateKey, salt, iv }
-        // We can just store what we generated.
-        // We need the User ID from the token or response to use as key in IDB.
-        // Usually data.user exists? Or decode token.
-        if (data.result?._id || data.user?._id) {
-          const userId = data.result?._id || data.user?._id;
-          await storePrivateKey(userId, {
-            encryptedPrivateKey,
-            salt,
-            iv
-          });
-        }
-
-        login(data.token, data.user);
-        // Set the private key in memory immediately since we just generated it
-        if (keyPair.privateKey) {
-          setPrivateKey(keyPair.privateKey);
-        }
+        // Cookie is set by backend. 
+        // We log in using the password to derive/unlock the key we just set.
+        await login(email, password);
 
         navigate("/diary");
         if (onLoginSuccess) {

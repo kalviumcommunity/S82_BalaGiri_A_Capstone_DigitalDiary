@@ -20,64 +20,22 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
 
   const handleLogin = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
+      await login(email, password);
+      // login in AuthContext handles fetching user and setting private key if possible (autosync)
 
-      const data = await res.json();
-
-      if (res.ok) {
-        if (!data.token) {
-          setError("Login succeeded but no token received!");
-          return;
-        }
-
-        // Store Encrypted Private Key if returned from server (Zero Knowledge Sync)
-        if (data.user?.encryptedPrivateKey && data.user?.salt) {
-          await storePrivateKey(data.user.id, {
-            encryptedPrivateKey: data.user.encryptedPrivateKey,
-            salt: data.user.salt,
-            iv: data.user.iv
-          });
-
-          // Decrypt Private Key and store in memory
-          try {
-            const privateKey = await decryptPrivateKey(
-              data.user.encryptedPrivateKey,
-              password,
-              data.user.salt,
-              data.user.iv
-            );
-            setPrivateKey(privateKey);
-          } catch (cryptoError) {
-            console.error("Failed to decrypt private key:", cryptoError);
-            // We don't block login, but user won't be able to read diary until they "unlock" or providing correct password (if it differed, which it shouldn't here)
-          }
-        }
-
-        login(data.token, data.user);
-        navigate("/diary");
-        if (onLoginSuccess) {
-          onLoginSuccess();
-        } else {
-          onClose();
-        }
+      navigate("/diary");
+      if (onLoginSuccess) {
+        onLoginSuccess();
       } else {
-        // Trigger shake animation on failure
-        controls.start({
-          x: [0, -10, 10, -10, 10, 0],
-          transition: { duration: 0.5 }
-        });
-        setError(data.message || "Login failed");
+        onClose();
       }
     } catch (err) {
+      console.error(err);
       controls.start({
         x: [0, -10, 10, -10, 10, 0],
         transition: { duration: 0.5 }
       });
-      setError("Something went wrong during login.");
+      setError(err.message || "Login failed");
     }
   };
 
