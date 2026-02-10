@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
 const diaryEntrySchema = new mongoose.Schema({
-  title: { type: String, required: true },
+  title: { type: String, required: true }, // Encrypted (Format: IV:Ciphertext)
   content: { type: String, required: true },
-  iv: { type: String }, // Initialization Vector
+  iv: { type: String }, // Initialization Vector for content
   encryptedKey: { type: String }, // AES key encrypted with user public key
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  mood: { type: String },
+  mood: { type: String }, // Encrypted (Format: IV:Ciphertext)
   date: { type: String, required: true },
   photos: [{
     path: { type: String, required: true },

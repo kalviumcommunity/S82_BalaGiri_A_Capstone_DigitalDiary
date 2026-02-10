@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useIdleTimer from '../hooks/useIdleTimer';
-import { deriveKey, decryptData } from '../utils/encryptionUtils';
+import { deriveKeyFromPassword, decryptPrivateKey, base64ToArrayBuffer, arrayBufferToBase64 } from '../utils/crypto';
+import { getPrivateKey, clearKeys } from '../utils/db'; // Added db utils
 
 const AuthContext = createContext(null);
 
@@ -44,11 +45,14 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error('Logout failed', error);
         }
+        if (user?._id) {
+            await clearKeys(user._id); // Clear indexedDB if we stored anything transiently
+        }
         setUser(null);
         setIsAuthenticated(false);
         setPrivateKey(null); // Wipe key
         navigate('/');
-    }, [navigate]);
+    }, [navigate, user]);
 
     useIdleTimer(300000, handleLogout, isAuthenticated); // 5 mins idle
 
@@ -88,28 +92,19 @@ export const AuthProvider = ({ children }) => {
 
     const unlockFn = async (password, userData) => {
         try {
-            // 1. Derive wrapping key from password
-            const wrappingKey = await deriveKey(password, userData.salt);
+            // Decrypt the stored private key using crypto.js
+            // userData.encryptedPrivateKey, salt, iv are generic strings/base64 from backend
+            // Our crypto.js expects Base64 strings.
+            // Backend stores them as provided by Signup.
 
-            // 2. Decrypt the stored private key
-            // Note: decryptData returns string, assuming encryptedPrivateKey sends stringified PEM or similar?
-            // If encryptedPrivateKey is hex, decryptData handles it.
-            const decryptedKeyStr = await decryptData(
+            const pKey = await decryptPrivateKey(
                 userData.encryptedPrivateKey,
-                userData.iv,
-                wrappingKey
+                password,
+                userData.salt,
+                userData.iv
             );
 
-            // 3. Import the Private Key (assuming it's PEM or JWK)
-            // For now, let's store it as is, or import if we use it for signing/decrypting actual data
-            // Assuming the system expects a CryptoKey object for 'privateKey'
-            // We need to know the format. If it was stored as PEM/string, we might need to import it.
-            // Let's assume for now we just store the "Unwrapped" key material (string/object) 
-            // until we see how it's used in components. 
-            // If previous implementation expected CryptoKey, we should import it.
-            // But let's keep it simple: Store the usable private key.
-
-            setPrivateKey(decryptedKeyStr);
+            setPrivateKey(pKey);
             console.log("Private key decrypted and in memory");
         } catch (e) {
             console.error("Unlock failed", e);

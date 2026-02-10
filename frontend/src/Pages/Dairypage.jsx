@@ -248,9 +248,48 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       const ivBuffer = base64ToArrayBuffer(entry.iv);
       const decryptedContent = await decryptData(contentBuffer, ivBuffer, aesKey, true);
 
-      return { ...entry, content: decryptedContent, aesKey };
+      // 3. Decrypt Title (Format: IV:Ciphertext)
+      let decryptedTitle = entry.title;
+      if (entry.title && entry.title.includes(':')) {
+        const parts = entry.title.split(':');
+        if (parts.length === 2) {
+          const [tIV, tCipher] = parts;
+          try {
+            decryptedTitle = await decryptData(
+              base64ToArrayBuffer(tCipher),
+              base64ToArrayBuffer(tIV),
+              aesKey,
+              true
+            );
+          } catch (e) {
+            console.warn("Title decryption failed, might be plaintext or corrupt", e);
+            // Keep original if fail (or show error?)
+          }
+        }
+      }
+
+      // 4. Decrypt Mood (Format: IV:Ciphertext)
+      let decryptedMood = entry.mood;
+      if (entry.mood && entry.mood.includes(':')) {
+        const parts = entry.mood.split(':');
+        if (parts.length === 2) {
+          const [mIV, mCipher] = parts;
+          try {
+            decryptedMood = await decryptData(
+              base64ToArrayBuffer(mCipher),
+              base64ToArrayBuffer(mIV),
+              aesKey,
+              true
+            );
+          } catch (e) {
+            console.warn("Mood decryption failed", e);
+          }
+        }
+      }
+
+      return { ...entry, content: decryptedContent, title: decryptedTitle, mood: decryptedMood, aesKey };
     } catch (err) {
-      console.error("Failed to decrypt entry:", entry.title, err);
+      console.error("Failed to decrypt entry:", entry._id, err); // Don't log title if it might be sensitive/encrypted
       return { ...entry, content: "⚠️ Decryption Failed" };
     }
   }, [privateKey]);

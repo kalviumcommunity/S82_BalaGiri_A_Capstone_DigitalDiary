@@ -121,16 +121,10 @@ exports.updateEntry = async (req, res) => {
 };
 
 exports.getEntryByTitle = async (req, res) => {
-  try {
-    const title = req.query.title || '';
-    const entries = await DiaryEntry.find({
-      title: new RegExp(title, 'i'),
-      user: req.user.id
-    });
-    res.json(entries);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching entry', error: err });
-  }
+  // Server-side search is disabled for E2EE.
+  // Titles are encrypted and cannot be queried by plaintext.
+  // Search is performed client-side on decrypted data.
+  res.status(400).json({ message: "Server-side search is disabled. Please perform search on the client." });
 };
 
 exports.getAllEntries = async (req, res) => {
