@@ -1,15 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useIdleTimer from '../hooks/useIdleTimer';
-import { deriveKeyFromPassword, decryptPrivateKey, base64ToArrayBuffer, arrayBufferToBase64 } from '../utils/crypto';
-import { getPrivateKey, clearKeys } from '../utils/db'; // Added db utils
+import { derivePasswordKey, decryptMasterKeyForHKDF, deriveAuthToken, checkValidator } from '../utils/cryptoUtils';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [privateKey, setPrivateKey] = useState(null); // Decrypted Private Key (Memory Only)
+
+    // MASTER KEY: Kept ONLY in memory.
+    // Derived from password on Login/Unlock. Wiped on Logout/Timeout.
+    const [masterKey, setMasterKey] = useState(null);
+
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const location = useLocation();
@@ -20,16 +23,25 @@ export const AuthProvider = ({ children }) => {
             const res = await fetch('/api/auth/me');
             if (res.ok) {
                 const data = await res.json();
-                setUser(data.user);
-                setIsAuthenticated(true);
+                if (data.isAuthenticated && data.user) {
+                    setUser(data.user);
+                    setIsAuthenticated(true);
+                    // Note: masterKey remains null after refresh until explicit unlock
+                } else {
+                    setUser(null);
+                    setIsAuthenticated(false);
+                    setMasterKey(null);
+                }
             } else {
                 setUser(null);
                 setIsAuthenticated(false);
+                setMasterKey(null);
             }
         } catch (error) {
             console.error('Auth check failed', error);
             setUser(null);
             setIsAuthenticated(false);
+            setMasterKey(null);
         } finally {
             setLoading(false);
         }
@@ -45,23 +57,24 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error('Logout failed', error);
         }
-        if (user?._id) {
-            await clearKeys(user._id); // Clear indexedDB if we stored anything transiently
-        }
         setUser(null);
         setIsAuthenticated(false);
-        setPrivateKey(null); // Wipe key
+        setMasterKey(null); // CRITICAL: Wipe Key
         navigate('/');
-    }, [navigate, user]);
+    }, [navigate]);
 
     useIdleTimer(300000, handleLogout, isAuthenticated); // 5 mins idle
 
     const login = async (email, password) => {
         try {
+            // 1. Derive Auth Token (Split Key)
+            const authToken = await deriveAuthToken(password);
+
+            // 2. Authenticate with Server
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password: authToken }) // Send Hash, not Password
             });
 
             if (!res.ok) {
@@ -73,18 +86,22 @@ export const AuthProvider = ({ children }) => {
             setUser(data.user);
             setIsAuthenticated(true);
 
-            // Derive Wrapping Key & Decrypt Private Key
-            if (data.user.salt && data.user.encryptedPrivateKey && data.user.iv) {
+            // 3. Derive Master Key & Verify
+            if (data.user.kdfSalt && data.user.validatorHash) {
                 await unlockFn(password, data.user);
             }
 
             return data;
         } catch (error) {
-            console.error(error);
+            console.error("Login Error:", error);
             throw error;
         }
     };
 
+    /**
+     * Unlocks the diary by deriving the Master Key from the password.
+     * Validates against the stored Validator Hash.
+     */
     const unlock = async (password) => {
         if (!user) throw new Error("No user loaded");
         await unlockFn(password, user);
@@ -92,23 +109,28 @@ export const AuthProvider = ({ children }) => {
 
     const unlockFn = async (password, userData) => {
         try {
-            // Decrypt the stored private key using crypto.js
-            // userData.encryptedPrivateKey, salt, iv are generic strings/base64 from backend
-            // Our crypto.js expects Base64 strings.
-            // Backend stores them as provided by Signup.
+            if (!userData.kdfSalt || !userData.encryptedMasterKey || !userData.masterKeyIV) {
+                throw new Error("User has no encryption setup or logic is outdated.");
+            }
 
-            const pKey = await decryptPrivateKey(
-                userData.encryptedPrivateKey,
-                password,
-                userData.salt,
-                userData.iv
-            );
+            // 1. Derive Password Key (KEK)
+            const passwordKey = await derivePasswordKey(password, userData.kdfSalt);
 
-            setPrivateKey(pKey);
-            console.log("Private key decrypted and in memory");
+            // 2. Unwrap Master Key
+            const mk = await decryptMasterKeyForHKDF(passwordKey, userData.encryptedMasterKey, userData.masterKeyIV);
+
+            // 3. Verify with Validator Hash (Zero-Knowledge Check)
+            if (userData.validatorHash) {
+                const isValid = await checkValidator(userData.validatorHash, mk);
+                if (!isValid) throw new Error("Invalid password (encryption check failed)");
+            }
+
+            setMasterKey(mk);
+            console.log("Master Key derived and in memory.");
+            return true;
         } catch (e) {
             console.error("Unlock failed", e);
-            throw new Error("Invalid password or corrupted key");
+            throw new Error(e.message || "Failed to unlock diary.");
         }
     };
 
@@ -119,14 +141,13 @@ export const AuthProvider = ({ children }) => {
     const contextValue = React.useMemo(() => ({
         user,
         isAuthenticated,
-        privateKey,
-        setPrivateKey,
+        masterKey,
         loading,
         login,
         logout,
         unlock,
-        checkAuth
-    }), [user, isAuthenticated, privateKey, loading, login, logout, unlock, checkAuth]);
+        isUnlocked: !!masterKey, // Convenience flag
+    }), [user, isAuthenticated, masterKey, loading, login, logout, unlock]);
 
     return (
         <AuthContext.Provider value={contextValue}>

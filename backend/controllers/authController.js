@@ -6,7 +6,8 @@ const { sendMagicLinkEmail } = require('../utils/emailService');
 
 exports.signup = async (req, res) => {
   try {
-    const { username, email, password, publicKey, encryptedPrivateKey, salt, iv } = req.body;
+    // New Flow: Client sends AuthToken as 'password', plus KDF fields
+    const { username, email, password, kdfSalt, validatorHash, encryptedMasterKey, masterKeyIV } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'User already exists' });
@@ -14,11 +15,12 @@ exports.signup = async (req, res) => {
     const newUser = new User({
       username,
       email,
-      password,
-      publicKey,
-      encryptedPrivateKey,
-      salt,
-      iv
+      password, // This is the AuthToken from client, hashed by pre-save hook
+      kdfSalt, // PUBLIC: Random salt for client-side PBKDF2
+      validatorHash, // PUBLIC: Encrypted "Validator" string
+      encryptedMasterKey,
+      masterKeyIV,
+      encryptionVersion: 1
     });
 
     await newUser.save();
@@ -26,13 +28,13 @@ exports.signup = async (req, res) => {
     const token = jwt.sign(
       { id: newUser._id, email: newUser.email },
       process.env.JWT_SECRET,
-      { expiresIn: '5m' }
+      { expiresIn: '1h' } // Increased to 1h to match cookie
     );
 
     // Set HttpOnly Cookie
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // true in prod
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 3600000 // 1 hour
     });
@@ -42,7 +44,12 @@ exports.signup = async (req, res) => {
       user: {
         id: newUser._id,
         email: newUser.email,
-        username: newUser.username
+        username: newUser.username,
+        kdfSalt: newUser.kdfSalt,
+        kdfIterations: newUser.kdfIterations,
+        validatorHash: newUser.validatorHash,
+        encryptedMasterKey: newUser.encryptedMasterKey,
+        masterKeyIV: newUser.masterKeyIV
       }
     });
 
@@ -54,17 +61,17 @@ exports.signup = async (req, res) => {
 
 
 exports.loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body; // 'password' here is the AuthToken
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
+    // Compare AuthToken (password) with stored Hash
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '5m' });
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // Set HttpOnly Cookie
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -78,13 +85,15 @@ exports.loginUser = async (req, res) => {
         id: user._id,
         email: user.email,
         username: user.username,
-        publicKey: user.publicKey,
-        encryptedPrivateKey: user.encryptedPrivateKey,
-        salt: user.salt,
-        iv: user.iv
+        kdfSalt: user.kdfSalt,
+        kdfIterations: user.kdfIterations,
+        validatorHash: user.validatorHash,
+        encryptedMasterKey: user.encryptedMasterKey,
+        masterKeyIV: user.masterKeyIV
       }
     });
   } catch (err) {
+    console.error("Login Error:", err);
     res.status(500).json({ message: "Login failed" });
   }
 };
@@ -94,9 +103,11 @@ exports.requestMagicLink = async (req, res) => {
 
   try {
     let user = await User.findOne({ email });
-    // If user doesn't exist, Create one (optional strategy: only allow existing? Spec says "Auto-create user if not exists")
     if (!user) {
-      user = new User({ email }); // Username/password optional
+      // We cannot create a user purely via Magic Link anymore for E2EE 
+      // because we need the KDF Salt and Validator Hash setup.
+      // Returning error for now.
+      return res.status(400).json({ message: 'User not found. Please sign up to initialize encryption.' });
     }
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -105,20 +116,15 @@ exports.requestMagicLink = async (req, res) => {
 
     await user.save();
 
-    // Note: In production with separate frontend, this URL usually points to frontend, which then calls API.
-    // User request says: "On link click: Verify token...". Usually link -> frontend -> API.
-    // I will point to frontend route /verify-login?token=...
-    const frontendUrl = `http://localhost:5173/verify-login?token=${token}`; // Assuming default Vite port or from env
+    const frontendUrl = `http://localhost:5173/verify-login?token=${token}`;
 
     await sendMagicLinkEmail(user.email, frontendUrl);
 
     res.status(200).json({ message: 'Magic link sent to email' });
 
   } catch (err) {
-    console.error('[Auth] Error during magic link request:', err);
-
-    // If it's an email error, we might want to be explicit, but 500 is generally correct for server failure
-    res.status(500).json({ message: 'Error sending magic link. Please check email configuration.' });
+    console.error('[Auth] Error:', err);
+    res.status(500).json({ message: 'Error sending magic link.' });
   }
 };
 
@@ -140,9 +146,20 @@ exports.verifyMagicLink = async (req, res) => {
     user.magicLinkExpires = undefined;
     await user.save();
 
-    const jwtToken = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '5m' });
+    const jwtToken = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    res.status(200).json({ token: jwtToken, user: { email: user.email, username: user.username } });
+    res.status(200).json({
+      token: jwtToken,
+      user: {
+        email: user.email,
+        username: user.username,
+        kdfSalt: user.kdfSalt,
+        kdfIterations: user.kdfIterations,
+        validatorHash: user.validatorHash,
+        encryptedMasterKey: user.encryptedMasterKey,
+        masterKeyIV: user.masterKeyIV
+      }
+    });
 
   } catch (err) {
     console.error(err);
@@ -161,12 +178,12 @@ exports.logoutUser = (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ isAuthenticated: false });
+    const token = req.cookies.token; // Checks HttpOnly cookie
+    if (!token) return res.json({ isAuthenticated: false, user: null });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select('-password');
-    if (!user) return res.status(401).json({ isAuthenticated: false });
+    if (!user) return res.json({ isAuthenticated: false, user: null });
 
     res.status(200).json({
       isAuthenticated: true,
@@ -174,13 +191,14 @@ exports.getMe = async (req, res) => {
         id: user._id,
         email: user.email,
         username: user.username,
-        publicKey: user.publicKey,
-        encryptedPrivateKey: user.encryptedPrivateKey,
-        salt: user.salt,
-        iv: user.iv
+        kdfSalt: user.kdfSalt,
+        kdfIterations: user.kdfIterations,
+        validatorHash: user.validatorHash,
+        encryptedMasterKey: user.encryptedMasterKey,
+        masterKeyIV: user.masterKeyIV
       }
     });
   } catch (err) {
-    res.status(401).json({ isAuthenticated: false });
+    res.json({ isAuthenticated: false, user: null });
   }
 };

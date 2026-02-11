@@ -1,8 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Image, Mic, MicOff, Lock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Image, Mic, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { generateAESKey, encryptData, wrapAESKey, encryptFile, arrayBufferToBase64, importKeyFromJWK } from '../utils/crypto';
+import {
+  deriveEntryKey,
+  encryptWithKey,
+  encryptFileWithKey,
+  generateSalt,
+  arrayBufferToBase64
+} from '../utils/cryptoUtils';
 
 const RECORDING_BARS = [1, 2, 3, 4];
 
@@ -15,12 +21,11 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isEncrypting, setIsEncrypting] = useState(false);
-  const { user } = useAuth();
+  const { user, masterKey } = useAuth(); // Use masterKey from context
 
   const isDark = currentTheme?.text?.includes('E1E7FF');
   const textColor = isDark ? 'text-white' : 'text-slate-800';
   const subTextColor = isDark ? 'text-white/60' : 'text-slate-500';
-  // Premium Glassmorphism background
   const modalBg = isDark
     ? 'bg-[#0f172a]/80 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]'
     : 'bg-white/80 border border-white/40 shadow-2xl';
@@ -31,17 +36,6 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   useEffect(() => {
     if (entry) {
       setTitle(entry.title || '');
-      // Note: If entry is already encrypted, we can't show it plainly without decryption!
-      // But NewEntry is used for EDITING too.
-      // If we are editing, we need to decrypt first.
-      // DiaryPage decrypts before showing "View Entry".
-      // Does it decrypt for "Edit"?
-      // DiaryPage passes `entryToEdit`.
-      // If `entryToEdit` content is encrypted string, we need to decrypt it.
-      // But NewEntry doesn't have decryption logic yet.
-      // And DiaryPage doesn't either (yet).
-      // For now, let's assume `entry` passed in is already decrypted or we will handle it later.
-      // Given the task order (NewEntry first), I'll just set it.
       setContent(entry.content || '');
       setMood(entry.mood || '');
     }
@@ -82,95 +76,82 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
     e.preventDefault();
 
     try {
-      if (!user?.publicKey) {
-        alert("Encryption keys missing. Please log out and back in.");
+      if (!masterKey) {
+        alert("Encryption key missing. Please unlock your diary first.");
         return;
       }
 
       setIsEncrypting(true);
 
-      // 1. Generate AES Key for this entry
-      const entryKey = await generateAESKey();
+      // --- ZERO-KNOWLEDGE PAYLOAD GENERATION ---
 
-      // 2. Encrypt Content
-      const { encryptedData: encryptedContentBuffer, iv: contentIVBuffer } = await encryptData(content, entryKey);
-      const encryptedContent = arrayBufferToBase64(encryptedContentBuffer);
-      const iv = arrayBufferToBase64(contentIVBuffer);
+      // 1. Generate Salt & Key
+      const entrySalt = generateSalt();
+      const entryKey = await deriveEntryKey(masterKey, entrySalt);
 
-      // 3a. Encrypt Title
-      const { encryptedData: encryptedTitleBuffer, iv: titleIVBuffer } = await encryptData(title, entryKey);
-      const encryptedTitle = arrayBufferToBase64(encryptedTitleBuffer);
-      const titleIV = arrayBufferToBase64(titleIVBuffer);
-      const packedTitle = `${titleIV}:${encryptedTitle}`;
+      // 2. Prepare File Metadata & Blobs
+      const photosMeta = [];
+      const encryptedPhotoBlobs = [];
 
-      // 3b. Encrypt Mood (if exists)
-      let packedMood = "";
-      if (mood) {
-        const { encryptedData: encryptedMoodBuffer, iv: moodIVBuffer } = await encryptData(mood, entryKey);
-        const encryptedMood = arrayBufferToBase64(encryptedMoodBuffer);
-        const moodIV = arrayBufferToBase64(moodIVBuffer);
-        packedMood = `${moodIV}:${encryptedMood}`;
-      }
+      await Promise.all(photos.map(async (p) => {
+        const { encryptedBlob, iv } = await encryptFileWithKey(p, entryKey);
+        // Generate a random ID for the file storage (hiding original name from server)
+        const fileId = generateSalt().replace(/[^a-zA-Z0-9]/g, '') + ".enc";
 
-      // 3c. Encrypt AES Key with User's Public Key
-      const publicKey = await importKeyFromJWK(JSON.parse(user.publicKey), "public");
-      const wrappedKeyBuffer = await wrapAESKey(entryKey, publicKey);
-      const encryptedKey = arrayBufferToBase64(wrappedKeyBuffer);
-
-      const formData = new FormData();
-      formData.append('title', packedTitle); // Encrypted
-      formData.append('content', encryptedContent); // Encrypted
-      // Send IV for the content
-      formData.append('iv', iv);
-      // Send Encrypted AES Key
-      formData.append('encryptedKey', encryptedKey);
-      formData.append('mood', packedMood); // Encrypted
-      formData.append('date', new Date().toISOString().split('T')[0]);
-
-      // 4. Encrypt Photos & Prepare Metadata
-      const photoMetadata = [];
-      const encryptedPhotos = await Promise.all(photos.map(async (p) => {
-        const encryptedBlob = await encryptFile(p, entryKey);
-        // Extract IV from the blob (first 12 bytes)
-        const ivBuffer = await encryptedBlob.slice(0, 12).arrayBuffer();
-        const ivBase64 = arrayBufferToBase64(ivBuffer);
-
-        photoMetadata.push({
-          iv: ivBase64,
+        photosMeta.push({
+          id: fileId,
+          iv: iv,
           mimeType: p.type,
-          originalName: p.name // Note: originalName is still plaintext metadata in JSON. 
-          // For Strict E2EE, we should probably encrypt this too or omit it.
-          // User Constraints: "Metadata content MUST be encrypted". 
-          // Does filename count? It allows inference. 
-          // For now, let's keep strict to the core fields, but ideally `originalName` should be scrambled or encrypted.
-          // I'll encrypt it? No, `photoMetadata` is stringified JSON sent as text.
-          // To be safe, I will NOT send originalName, or I will replace it with a generic name.
-          // "image.png".
-          // originalName: 'encrypted_file' 
+          originalName: `photo_${photosMeta.length}` // Minimal leak
         });
-        return encryptedBlob;
+        encryptedPhotoBlobs.push({ blob: encryptedBlob, filename: fileId });
       }));
 
-      encryptedPhotos.forEach((blob, index) => {
-        formData.append('photos', blob, `photo_${index}.enc`);
-      });
-      formData.append('photoMetadata', JSON.stringify(photoMetadata));
+      let audioMeta = null;
+      let encryptedAudioBlob = null;
 
-      // 5. Encrypt Audio & Prepare Metadata
       if (audioBlob instanceof Blob) {
-        const encryptedAudio = await encryptFile(audioBlob, entryKey);
-        // Extract IV
-        const ivBuffer = await encryptedAudio.slice(0, 12).arrayBuffer();
-        const ivBase64 = arrayBufferToBase64(ivBuffer);
+        const { encryptedBlob, iv } = await encryptFileWithKey(audioBlob, entryKey);
+        const fileId = generateSalt().replace(/[^a-zA-Z0-9]/g, '') + ".audio.enc";
 
-        const audioMeta = {
-          iv: ivBase64,
-          mimeType: 'audio/mpeg', // or audioBlob.type
+        audioMeta = {
+          id: fileId,
+          iv: iv,
+          mimeType: 'audio/mpeg',
           originalName: 'recording.mp3'
         };
+        encryptedAudioBlob = { blob: encryptedBlob, filename: fileId };
+      }
 
-        formData.append('audio', encryptedAudio, 'recording.enc');
-        formData.append('audioMetadata', JSON.stringify(audioMeta));
+      // 3. Construct the Secret Payload
+      // This object contains EVERYTHING. The server sees NONE of this.
+      const entryData = {
+        title: title,
+        content: content,
+        mood: mood,
+        date: new Date().toISOString().split('T')[0], // User-facing date
+        photos: photosMeta,
+        audio: audioMeta,
+        // We can add arbitrary tags, location, etc. here freely
+      };
+
+      // 4. Encrypt the Payload
+      const { payload: encryptedPayload, iv: payloadIV } = await import('../utils/cryptoUtils').then(m => m.encryptEntryPayload(entryData, entryKey));
+
+      // 5. Construct FormData
+      const formData = new FormData();
+      formData.append('payload', encryptedPayload);
+      formData.append('iv', payloadIV);
+      formData.append('entrySalt', entrySalt);
+      formData.append('encryptionVersion', '2');
+
+      // Append Files with their random IDs
+      encryptedPhotoBlobs.forEach(({ blob, filename }) => {
+        formData.append('photos', blob, filename);
+      });
+
+      if (encryptedAudioBlob) {
+        formData.append('audio', encryptedAudioBlob.blob, encryptedAudioBlob.filename);
       }
 
       const url = entry
@@ -187,8 +168,8 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to save entry');
 
-      onSave(); // Refresh list
-      onClose(); // Close modal
+      onSave();
+      onClose();
     } catch (err) {
       console.error('Upload error:', err);
       alert('Failed to save entry. ' + err.message);
@@ -204,7 +185,6 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
         onClick={onClose}
       ></div>
       <div className={`relative ${modalBg} backdrop-blur-xl rounded-3xl max-w-2xl w-full mx-4 shadow-2xl transition-all transform flex flex-col max-h-[90vh] overflow-hidden`}>
-        {/* Header */}
         <div className="p-6 sm:p-8 pb-0 shrink-0 relative">
           <button
             onClick={onClose}
@@ -218,7 +198,6 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
           </h2>
         </div>
 
-        {/* Scrollable Form */}
         <div className="overflow-y-auto p-6 sm:p-8 pt-2 custom-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">

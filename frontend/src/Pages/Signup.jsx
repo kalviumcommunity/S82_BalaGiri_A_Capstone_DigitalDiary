@@ -4,10 +4,7 @@ import { motion, useAnimation } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import FailureAnimation from '../components/FailureAnimation';
 import { useAuth } from '../context/AuthContext';
-import { generateKeyPair, encryptPrivateKey, exportKeyToJWK } from '../utils/crypto';
-import { storePrivateKey } from '../utils/db';
-
-
+import { generateMasterKeyHKDF, derivePasswordKey, exportAndEncryptMasterKey, deriveAuthToken, createValidator, generateSalt } from '../utils/cryptoUtils';
 
 const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }) => {
   const [username, setUsername] = useState("");
@@ -19,7 +16,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
   const navigate = useNavigate();
 
   const controls = useAnimation();
-  const { login, setPrivateKey } = useAuth();
+  const { login } = useAuth(); // No setPrivateKey anymore
 
   const handleRegister = async () => {
     try {
@@ -30,28 +27,38 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
 
       setIsGeneratingKeys(true);
 
-      // 1. Generate RSA Key Pair
-      const keyPair = await generateKeyPair();
+      // --- ZERO-KNOWLEDGE KEY GENERATION (Wrapped Key Arch) ---
 
-      // 2. Encrypt Private Key with Password
-      const { encryptedPrivateKey, salt, iv } = await encryptPrivateKey(keyPair.privateKey, password);
+      // 1. Generate User Salt (Public, stored on server)
+      const kdfSalt = generateSalt();
 
-      // 3. Export Public Key for server
-      const publicKeyJWK = await exportKeyToJWK(keyPair.publicKey);
-      const publicKeyString = JSON.stringify(publicKeyJWK);
+      // 2. Derive Password Key (KEK) - Used ONLY to wrap Master Key
+      const passwordKey = await derivePasswordKey(password, kdfSalt);
 
-      // 4. Send to Backend
+      // 3. Generate Master Key (Random, HKDF-compatible)
+      const masterKey = await generateMasterKeyHKDF();
+
+      // 4. Wrap (Encrypt) Master Key
+      const { encryptedMasterKey, iv: masterKeyIV } = await exportAndEncryptMasterKey(masterKey, passwordKey);
+
+      // 5. Create Validator Hash (for ZK Verification)
+      const validatorHash = await createValidator(masterKey);
+
+      // 6. Derive Auth Token (Server Password)
+      const authToken = await deriveAuthToken(password);
+
+      // 7. Send to Backend
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username,
           email,
-          password, // Used for Auth only
-          publicKey: publicKeyString,
-          encryptedPrivateKey, // Syncing to backend
-          salt, // Syncing to backend
-          iv // Syncing to backend
+          password: authToken,
+          kdfSalt,
+          validatorHash,
+          encryptedMasterKey,
+          masterKeyIV
         })
       });
 
@@ -59,15 +66,17 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       setIsGeneratingKeys(false);
 
       if (res.ok) {
-        // Cookie is set by backend. 
-        // We log in using the password to derive/unlock the key we just set.
+        // Log in automatically. 
+        // We pass the ORIGINAL password because AuthContext needs it to:
+        // A) Derive AuthToken for API
+        // B) Derive MasterKey for Memory
         await login(email, password);
 
         navigate("/diary");
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
-          onClose();
+          onClose(); // Close modal if used as modal
         }
       } else {
         controls.start({
@@ -86,8 +95,6 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       setError("Something went wrong during signup.");
     }
   };
-
-
 
   const overlayBg = isDark ? 'bg-[#1B2A4A]/60 border border-white/10' : 'bg-white/60 border border-white/40';
   const textColor = isDark ? 'text-white' : 'text-slate-800';
@@ -147,7 +154,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
             {isGeneratingKeys ? (
               <>
                 <Loader className="animate-spin" size={20} />
-                <span>Generating Keys...</span>
+                <span>Generating Encryption Keys...</span>
               </>
             ) : (
               "Register"

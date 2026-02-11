@@ -1,25 +1,26 @@
 const mongoose = require('mongoose');
 
 const diaryEntrySchema = new mongoose.Schema({
-  title: { type: String, required: true }, // Encrypted (Format: IV:Ciphertext)
-  content: { type: String, required: true },
-  iv: { type: String }, // Initialization Vector for content
-  encryptedKey: { type: String }, // AES key encrypted with user public key
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  mood: { type: String }, // Encrypted (Format: IV:Ciphertext)
-  date: { type: String, required: true },
-  photos: [{
-    path: { type: String, required: true },
-    iv: { type: String, required: true },
-    mimeType: { type: String, required: true },
-    originalName: { type: String }
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+
+  // ZERO-KNOWLEDGE PAYLOAD
+  // Contains (encrypted JSON): { title, content, date, mood, fileMetadata, ... }
+  payload: { type: String, required: true },
+
+  // Encryption Metadata for the Payload
+  iv: { type: String, required: true }, // IV used to encrypt the payload
+  entrySalt: { type: String, required: true }, // Salt used to derive the key for this entry
+
+  // Attachments (Files are encrypted separately)
+  // We strictly store PATHS here to manage file deletion/serving.
+  // All metadata (Original Name, MIME Type, File IV) is inside the encrypted payload.
+  attachments: [{
+    type: String // Path to file on disk (e.g., "/uploads/photos/xyz.enc")
   }],
-  audio: {
-    path: { type: String },
-    iv: { type: String },
-    mimeType: { type: String },
-    originalName: { type: String }
-  }
-});
+
+  // Versioning allows future crypto upgrades
+  encryptionVersion: { type: Number, default: 2 }
+
+}, { timestamps: false }); // Disable timestamps to prevent frequency analysis
 
 module.exports = mongoose.model('DiaryEntry', diaryEntrySchema);

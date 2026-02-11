@@ -6,7 +6,7 @@ import FailureAnimation from '../components/FailureAnimation';
 import { useDialog } from '../context/DialogContext';
 import { useAuth } from '../context/AuthContext';
 import { storePrivateKey } from '../utils/db';
-import { decryptPrivateKey } from '../utils/crypto';
+
 
 const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }) => {
   const [email, setEmail] = useState("");
