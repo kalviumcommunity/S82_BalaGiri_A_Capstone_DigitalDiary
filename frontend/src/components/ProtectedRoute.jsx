@@ -1,10 +1,15 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem("token");
+  const { isAuthenticated, loading } = useAuth();
 
-  if (!token) {
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>; // Or a spinner
+  }
+
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 

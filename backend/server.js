@@ -11,6 +11,19 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(require('cookie-parser')());
+app.use(
+  require('helmet').contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"], // Strict! No inline scripts.
+      styleSrc: ["'self'", "'unsafe-inline'"], // React often needs inline styles
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
+    },
+  })
+);
+
 
 
 

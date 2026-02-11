@@ -29,8 +29,16 @@ exports.signup = async (req, res) => {
       { expiresIn: '5m' }
     );
 
+    // Set HttpOnly Cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // true in prod
+      sameSite: 'strict',
+      maxAge: 3600000 // 1 hour
+    });
+
     res.status(201).json({
-      token,
+      success: true,
       user: {
         id: newUser._id,
         email: newUser.email,
@@ -56,8 +64,16 @@ exports.loginUser = async (req, res) => {
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '5m' });
 
+    // Set HttpOnly Cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 3600000 // 1 hour
+    });
+
     res.status(200).json({
-      token,
+      success: true,
       user: {
         id: user._id,
         email: user.email,
@@ -131,5 +147,40 @@ exports.verifyMagicLink = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error verifying magic link' });
+  }
+};
+
+exports.logoutUser = (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  res.status(200).json({ success: true, message: 'Logged out' });
+};
+
+exports.getMe = async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ isAuthenticated: false });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) return res.status(401).json({ isAuthenticated: false });
+
+    res.status(200).json({
+      isAuthenticated: true,
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        publicKey: user.publicKey,
+        encryptedPrivateKey: user.encryptedPrivateKey,
+        salt: user.salt,
+        iv: user.iv
+      }
+    });
+  } catch (err) {
+    res.status(401).json({ isAuthenticated: false });
   }
 };
