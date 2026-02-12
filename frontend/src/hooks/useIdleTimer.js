@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-const useIdleTimer = (timeoutMs = 300000, onTimeout, isAuthenticated) => { // Default 5 minutes
+const useIdleTimer = (timeoutMs = 300000, onTimeout, isAuthenticated) => {
     const [isIdle, setIsIdle] = useState(false);
     const lastActivityRef = useRef(Date.now());
 
@@ -14,17 +14,15 @@ const useIdleTimer = (timeoutMs = 300000, onTimeout, isAuthenticated) => { // De
     useEffect(() => {
         if (!isAuthenticated) return;
 
-        // Events to detect activity
         const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click', 'keypress'];
 
-        // Throttle the reset to avoid performance issues
         let throttleTimer;
         const handleEvent = () => {
             if (!throttleTimer) {
                 resetTimer();
                 throttleTimer = setTimeout(() => {
                     throttleTimer = null;
-                }, 1000); // Throttle to 1 second
+                }, 1000);
             }
         };
 
@@ -41,18 +39,15 @@ const useIdleTimer = (timeoutMs = 300000, onTimeout, isAuthenticated) => { // De
                 if (onTimeout) onTimeout();
                 setIsIdle(true);
             }
-        }, 1000); // Check every second
+        }, 1000);
 
-        // Sync across tabs
         const handleStorageChange = (event) => {
             if (event.key === 'token' && event.newValue === null) {
-                // Token removed in another tab
                 if (onTimeout) onTimeout();
             }
         };
         window.addEventListener('storage', handleStorageChange);
 
-        // Initialize lastActivity if logged in and missing (recovery)
         if (!localStorage.getItem('lastActivity')) {
             resetTimer();
         }

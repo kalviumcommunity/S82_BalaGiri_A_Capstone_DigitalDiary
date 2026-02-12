@@ -8,7 +8,6 @@ const CustomAudioPlayer = ({ src, isDarkMode }) => {
     const [currentTime, setCurrentTime] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
 
-    // Derive styles based on theme
     const containerClass = isDarkMode
         ? "bg-slate-800/50 border border-white/10"
         : "bg-white/50 border border-slate-200";
@@ -75,7 +74,6 @@ const CustomAudioPlayer = ({ src, isDarkMode }) => {
         <div className={`w-full rounded-2xl p-4 flex items-center gap-4 ${containerClass} backdrop-blur-md shadow-sm transition-all`}>
             <audio ref={audioRef} src={src} preload="metadata" />
 
-            {/* Play/Pause Button */}
             <button
                 onClick={togglePlay}
                 className={`p-3 rounded-full shadow-lg transition-all active:scale-95 flex-shrink-0 ${isDarkMode ? 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400' : 'bg-white hover:bg-slate-50 text-cyan-600 border border-slate-100'}`}
@@ -83,19 +81,15 @@ const CustomAudioPlayer = ({ src, isDarkMode }) => {
                 {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
             </button>
 
-            {/* Progress Bar & Time */}
             <div className="flex-1 flex flex-col justify-center gap-1">
                 <div className="relative w-full h-2 rounded-full cursor-pointer group">
-                    {/* Background Track */}
                     <div className={`absolute inset-0 rounded-full ${progressBgClass}`}></div>
 
-                    {/* Filled Track */}
                     <div
                         className={`absolute top-0 left-0 h-full rounded-full ${progressFillClass} transition-all duration-100`}
                         style={{ width: `${progressPercent}%` }}
                     ></div>
 
-                    {/* Input Range for Interaction */}
                     <input
                         type="range"
                         min={0}
@@ -112,7 +106,6 @@ const CustomAudioPlayer = ({ src, isDarkMode }) => {
                 </div>
             </div>
 
-            {/* Mute Button */}
             <button onClick={toggleMute} className={`p-2 rounded-full hover:bg-white/10 transition-colors ${subTextClass}`}>
                 {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
             </button>

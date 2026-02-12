@@ -1,18 +1,12 @@
-/**
- * Web Crypto API Utilities for End-to-End Encryption
- * Uses RSA-OAEP for key wrapping and AES-GCM for content encryption.
- */
 
-// Configuration
-const PBKDF2_ITERATIONS = 300000;
+
+const PBKDF2_ITERATIONS = 600000;
 const SALT_LENGTH = 16;
 const IV_LENGTH = 12; // 96 bits for AES-GCM
-const RSA_MODULUS_LENGTH = 4096;
-const RSA_HASH = 'SHA-256';
+const MASTER_KEY_LENGTH = 256;
+const HASH_ALGO = "SHA-256";
 
-/**
- * Converts ArrayBuffer to Base64 String
- */
+
 export const arrayBufferToBase64 = (buffer) => {
     let binary = '';
     const bytes = new Uint8Array(buffer);
@@ -23,9 +17,6 @@ export const arrayBufferToBase64 = (buffer) => {
     return window.btoa(binary);
 };
 
-/**
- * Converts Base64 String to ArrayBuffer
- */
 export const base64ToArrayBuffer = (base64) => {
     const binary_string = window.atob(base64);
     const len = binary_string.length;
@@ -36,36 +27,16 @@ export const base64ToArrayBuffer = (base64) => {
     return bytes.buffer;
 };
 
-/**
- * Generates a random salt
- */
 export const generateSalt = () => {
-    return window.crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+    const salt = window.crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+    return arrayBufferToBase64(salt);
 };
 
-/**
- * Generates an RSA-OAEP Key Pair (Public/Private)
- * Returns { publicKey, privateKey } as CryptoKey objects
- */
-export const generateKeyPair = async () => {
-    return await window.crypto.subtle.generateKey(
-        {
-            name: "RSA-OAEP",
-            modulusLength: RSA_MODULUS_LENGTH,
-            publicExponent: new Uint8Array([1, 0, 1]),
-            hash: RSA_HASH,
-        },
-        true, // extractable
-        ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
-    );
-};
 
-/**
- * Derives a valid AES-GCM key from a user password and salt
- */
-export const deriveKeyFromPassword = async (password, saltBuffer) => {
+
+export const deriveMasterKey = async (password, userSaltBase64) => {
     const enc = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey(
+    const passwordKey = await window.crypto.subtle.importKey(
         "raw",
         enc.encode(password),
         { name: "PBKDF2" },
@@ -73,230 +44,164 @@ export const deriveKeyFromPassword = async (password, saltBuffer) => {
         ["deriveKey"]
     );
 
-    return await window.crypto.subtle.deriveKey(
+    const saltBuffer = base64ToArrayBuffer(userSaltBase64);
+
+    return window.crypto.subtle.deriveKey(
         {
             name: "PBKDF2",
             salt: saltBuffer,
             iterations: PBKDF2_ITERATIONS,
+            hash: HASH_ALGO
+        },
+        passwordKey,
+        { name: "HMAC", hash: HASH_ALGO, length: MASTER_KEY_LENGTH },
+        false,
+        ["sign"]
+    );
+};
+
+export const deriveAuthToken = async (password) => {
+    const enc = new TextEncoder();
+    const key = await window.crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        { name: "HMAC", hash: HASH_ALGO },
+        false,
+        ["sign"]
+    );
+
+    const signature = await window.crypto.subtle.sign(
+        "HMAC",
+        key,
+        enc.encode("AUTH_PURPOSE_SEPARATION_TOKEN")
+    );
+
+    return arrayBufferToBase64(signature);
+};
+
+export const deriveEntryKey = async (masterKey, entrySaltBase64) => {
+    const enc = new TextEncoder();
+    const saltBuffer = base64ToArrayBuffer(entrySaltBase64);
+    const infoBuffer = enc.encode("DiaryEntry-AES-GCM-v1");
+
+    return window.crypto.subtle.deriveKey(
+        {
+            name: "HKDF",
             hash: "SHA-256",
+            salt: saltBuffer,
+            info: infoBuffer
         },
-        keyMaterial,
+        masterKey,
         { name: "AES-GCM", length: 256 },
-        true, // extractable
-        ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
-    );
-};
-
-/**
- * Generates a random AES-256 key for entry encryption
- */
-export const generateAESKey = async () => {
-    return await window.crypto.subtle.generateKey(
-        {
-            name: "AES-GCM",
-            length: 256,
-        },
         true,
         ["encrypt", "decrypt"]
     );
 };
 
-/**
- * Encrypts data (string or ArrayBuffer) using AES-GCM
- * Returns { encryptedData, iv } (both as ArrayBuffer)
- */
-export const encryptData = async (data, key) => {
+
+
+export const encryptWithKey = async (content, key) => {
     const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-    let dataBuffer;
+    const enc = new TextEncoder();
 
-    if (typeof data === 'string') {
-        const enc = new TextEncoder();
-        dataBuffer = enc.encode(data);
-    } else {
-        dataBuffer = data;
-    }
-
-    const encrypted = await window.crypto.subtle.encrypt(
-        {
-            name: "AES-GCM",
-            iv: iv,
-        },
+    const encryptedBuffer = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
         key,
-        dataBuffer
+        enc.encode(content)
     );
-
-    return { encryptedData: encrypted, iv: iv.buffer };
-};
-
-/**
- * Decrypts data using AES-GCM
- * Returns ArrayBuffer (or string if specified)
- */
-export const decryptData = async (encryptedData, iv, key, isString = true) => {
-    const decrypted = await window.crypto.subtle.decrypt(
-        {
-            name: "AES-GCM",
-            iv: new Uint8Array(iv), // Make sure IV is Uint8Array
-        },
-        key,
-        encryptedData
-    );
-
-    if (isString) {
-        const dec = new TextDecoder();
-        return dec.decode(decrypted);
-    }
-    return decrypted;
-};
-
-/**
- * Encrypts a File object (Blob) -> Returns Blob (IV + Encrypted Data)
- */
-export const encryptFile = async (file, key) => {
-    const buffer = await file.arrayBuffer();
-    const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-
-    const encrypted = await window.crypto.subtle.encrypt(
-        {
-            name: "AES-GCM",
-            iv: iv,
-        },
-        key,
-        buffer
-    );
-
-    // Combine IV and Encrypted Data
-    return new Blob([iv, encrypted]);
-};
-
-/**
- * Decrypts a Blob (IV + Encrypted Data) -> Returns Blob (original file)
- */
-export const decryptFile = async (encryptedBlob, key, mimeType) => {
-    const buffer = await encryptedBlob.arrayBuffer();
-
-    // Extract IV (first 12 bytes)
-    const iv = buffer.slice(0, IV_LENGTH);
-    const data = buffer.slice(IV_LENGTH);
-
-    const decrypted = await window.crypto.subtle.decrypt(
-        {
-            name: "AES-GCM",
-            iv: new Uint8Array(iv),
-        },
-        key,
-        data
-    );
-
-    return new Blob([decrypted], { type: mimeType });
-};
-
-/**
- * Wraps (encrypts) an AES key with an RSA Public Key
- */
-export const wrapAESKey = async (aesKey, publicKey) => {
-    return await window.crypto.subtle.wrapKey(
-        "raw",
-        aesKey,
-        publicKey,
-        {
-            name: "RSA-OAEP",
-        }
-    );
-};
-
-/**
- * Unwraps (decrypts) an AES key with an RSA Private Key
- */
-export const unwrapAESKey = async (wrappedKey, privateKey) => {
-    return await window.crypto.subtle.unwrapKey(
-        "raw",
-        wrappedKey,
-        privateKey,
-        {
-            name: "RSA-OAEP",
-        },
-        {
-            name: "AES-GCM",
-            length: 256,
-        },
-        true,
-        ["encrypt", "decrypt"]
-    );
-};
-
-/**
- * Exports a key to JWK format (for storage)
- */
-export const exportKeyToJWK = async (key) => {
-    return await window.crypto.subtle.exportKey("jwk", key);
-};
-
-/**
- * Imports a key from JWK format
- */
-export const importKeyFromJWK = async (jwk, type) => {
-    const algorithm = type === 'public' || type === 'private'
-        ? { name: "RSA-OAEP", hash: RSA_HASH }
-        : { name: "AES-GCM" };
-
-    const keyUsages = type === 'public'
-        ? ["encrypt", "wrapKey"]
-        : type === 'private'
-            ? ["decrypt", "unwrapKey"]
-            : ["encrypt", "decrypt"];
-
-    return await window.crypto.subtle.importKey(
-        "jwk",
-        jwk,
-        algorithm,
-        true,
-        keyUsages
-    );
-};
-
-/**
- * Encrypts a Private Key (CryptoKey) with a password
- * Returns { encryptedPrivateKey (Base64), salt (Base64), iv (Base64) }
- */
-export const encryptPrivateKey = async (privateKey, password) => {
-    // 1. Export Private Key to JWK
-    const jwk = await exportKeyToJWK(privateKey);
-    const jwkString = JSON.stringify(jwk);
-
-    // 2. Generate Salt
-    const salt = generateSalt();
-
-    // 3. Derive Key from Password
-    const key = await deriveKeyFromPassword(password, salt);
-
-    // 4. Encrypt JWK String
-    const { encryptedData, iv } = await encryptData(jwkString, key);
 
     return {
-        encryptedPrivateKey: arrayBufferToBase64(encryptedData),
-        salt: arrayBufferToBase64(salt),
+        ciphertext: arrayBufferToBase64(encryptedBuffer),
         iv: arrayBufferToBase64(iv)
     };
 };
 
-/**
- * Decrypts a Private Key with a password
- * Returns Private Key (CryptoKey)
- */
-export const decryptPrivateKey = async (encryptedPrivateKeyB64, password, saltB64, ivB64) => {
-    // 1. Convert Base64 helpers
-    const salt = base64ToArrayBuffer(saltB64);
+export const decryptWithKey = async (ciphertextB64, ivB64, key) => {
     const iv = base64ToArrayBuffer(ivB64);
-    const encryptedData = base64ToArrayBuffer(encryptedPrivateKeyB64);
+    const ciphertext = base64ToArrayBuffer(ciphertextB64);
 
-    // 2. Derive Key from Password
-    const key = await deriveKeyFromPassword(password, salt);
+    const decryptedBuffer = await window.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: new Uint8Array(iv) },
+        key,
+        ciphertext
+    );
 
-    // 3. Decrypt
-    const jwkString = await decryptData(encryptedData, iv, key, true);
-
-    // 4. Import JWK
-    const jwk = JSON.parse(jwkString);
-    return await importKeyFromJWK(jwk, 'private');
+    const dec = new TextDecoder();
+    return dec.decode(decryptedBuffer);
 };
+
+
+
+export const encryptEntry = async (content, masterKey) => {
+    const entrySalt = generateSalt();
+    const entryKey = await deriveEntryKey(masterKey, entrySalt);
+    const { ciphertext, iv } = await encryptWithKey(content, entryKey);
+    return { ciphertext, iv, entrySalt };
+};
+
+export const decryptEntry = async (ciphertextB64, ivB64, entrySaltB64, masterKey) => {
+    try {
+        const entryKey = await deriveEntryKey(masterKey, entrySaltB64);
+        return await decryptWithKey(ciphertextB64, ivB64, entryKey);
+    } catch (e) {
+        console.error("Decryption Failed:", e);
+        throw new Error("Failed to decrypt entry.");
+    }
+};
+
+export const createValidator = async (masterKey) => {
+    const CONSTANT = "VALID_PASSWORD_CHECK";
+    const { ciphertext, iv, entrySalt } = await encryptEntry(CONSTANT, masterKey);
+    return `${entrySalt}:${iv}:${ciphertext}`;
+};
+
+export const checkValidator = async (validatorStr, masterKey) => {
+    try {
+        const [entrySalt, iv, ciphertext] = validatorStr.split(":");
+        if (!entrySalt || !iv || !ciphertext) return false;
+        const decrypted = await decryptEntry(ciphertext, iv, entrySalt, masterKey);
+        return decrypted === "VALID_PASSWORD_CHECK";
+    } catch (e) {
+        return false;
+    }
+};
+
+
+
+export const encryptFileWithKey = async (file, key) => {
+    const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+    const fileBuffer = await file.arrayBuffer();
+
+    const encryptedBuffer = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        fileBuffer
+    );
+
+    return {
+        encryptedBlob: new Blob([encryptedBuffer]),
+        iv: arrayBufferToBase64(iv)
+    };
+};
+
+export const encryptFile = async (file, masterKey) => {
+    const entrySalt = generateSalt();
+    const entryKey = await deriveEntryKey(masterKey, entrySalt);
+    const { encryptedBlob, iv } = await encryptFileWithKey(file, entryKey);
+
+    return { encryptedBlob, iv, entrySalt };
+};
+
+export const decryptFile = async (encryptedBlob, ivB64, entrySaltB64, masterKey, mimeType) => {
+    const entryKey = await deriveEntryKey(masterKey, entrySaltB64);
+    const iv = base64ToArrayBuffer(ivB64);
+    const encryptedBuffer = await encryptedBlob.arrayBuffer();
+
+    const decryptedBuffer = await window.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: new Uint8Array(iv) },
+        entryKey,
+        encryptedBuffer
+    );
+
+    return new Blob([decryptedBuffer], { type: mimeType });
+}

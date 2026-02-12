@@ -2,21 +2,39 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-    username: { type: String, unique: true }, // Made optional
+    username: { type: String, unique: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String }, // Made optional
+
+    authVerifier: { type: String },
+    password: { type: String },
+
+    kdfSalt: { type: String, required: true },
+    kdfIterations: { type: Number, default: 600000 },
+    validatorHash: { type: String },
+    encryptedMasterKey: { type: String },
+    masterKeyIV: { type: String },
+
+    encryptionVersion: { type: Number, default: 1 },
+
     magicLinkToken: { type: String },
-    magicLinkExpires: { type: Date },
-    publicKey: { type: String }, // JWK public key
-    encryptedPrivateKey: { type: String }, // Encrypted JWK private key
-    iv: { type: String }, // IV for private key encryption
-    salt: { type: String } // Salt used for key derivation
-});
+    magicLinkExpires: { type: Date }
+}, { timestamps: true });
 
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password') || !this.password) return next();
-    this.password = await bcrypt.hash(this.password, 12);
-    next();
+    if (!this.isModified('password')) return next();
+
+    if (this.password && (this.password.startsWith('$2a$') || this.password.startsWith('$2b$') || this.password.startsWith('$2y$'))) {
+        return next();
+    }
+
+
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (err) {
+        next(err);
+    }
 });
 
 module.exports = mongoose.model('User', userSchema);

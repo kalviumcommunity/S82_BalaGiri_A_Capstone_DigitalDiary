@@ -1,35 +1,56 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useIdleTimer from '../hooks/useIdleTimer';
-import { deriveKeyFromPassword, decryptPrivateKey, base64ToArrayBuffer, arrayBufferToBase64 } from '../utils/crypto';
-import { getPrivateKey, clearKeys } from '../utils/db'; // Added db utils
+import { derivePasswordKey, decryptMasterKeyForHKDF, deriveAuthToken, checkValidator } from '../utils/cryptoUtils';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [privateKey, setPrivateKey] = useState(null); // Decrypted Private Key (Memory Only)
+
+    const [masterKey, setMasterKey] = useState(null);
+
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Check if user is authenticated (HTTP Only Cookie)
     const checkAuth = useCallback(async () => {
         try {
-            const res = await fetch('/api/auth/me');
+            const token = localStorage.getItem('token');
+
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const res = await fetch(`${apiUrl}/api/auth/me`, {
+                headers,
+            });
+
             if (res.ok) {
                 const data = await res.json();
-                setUser(data.user);
-                setIsAuthenticated(true);
+                if (data.isAuthenticated && data.user) {
+                    setUser(data.user);
+                    setIsAuthenticated(true);
+                } else {
+                    setUser(null);
+                    setIsAuthenticated(false);
+                    setMasterKey(null);
+                    if (token) localStorage.removeItem('token');
+                }
             } else {
                 setUser(null);
                 setIsAuthenticated(false);
+                setMasterKey(null);
+                if (token) localStorage.removeItem('token');
             }
         } catch (error) {
             console.error('Auth check failed', error);
             setUser(null);
             setIsAuthenticated(false);
+            setMasterKey(null);
         } finally {
             setLoading(false);
         }
@@ -41,49 +62,65 @@ export const AuthProvider = ({ children }) => {
 
     const handleLogout = useCallback(async () => {
         try {
-            await fetch('/api/auth/logout', { method: 'POST' });
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            await fetch(`${apiUrl}/api/auth/logout`, { method: 'POST', credentials: 'include' });
         } catch (error) {
             console.error('Logout failed', error);
         }
-        if (user?._id) {
-            await clearKeys(user._id); // Clear indexedDB if we stored anything transiently
-        }
+        localStorage.removeItem('token');
         setUser(null);
         setIsAuthenticated(false);
-        setPrivateKey(null); // Wipe key
+        setMasterKey(null);
         navigate('/');
-    }, [navigate, user]);
+    }, [navigate]);
 
-    useIdleTimer(300000, handleLogout, isAuthenticated); // 5 mins idle
+    useIdleTimer(300000, handleLogout, isAuthenticated);
 
     const login = async (email, password) => {
         try {
-            const res = await fetch('/api/auth/login', {
+            const authToken = await deriveAuthToken(password);
+
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const res = await fetch(`${apiUrl}/api/auth/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ email, password: authToken })
             });
 
             if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.message || 'Login failed');
+                let errorMessage = 'Login failed';
+                try {
+                    const err = await res.json();
+                    errorMessage = err.message || errorMessage;
+                } catch (e) {
+                    errorMessage = res.statusText || errorMessage;
+                }
+                throw new Error(errorMessage);
             }
 
             const data = await res.json();
+
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+            }
+
             setUser(data.user);
             setIsAuthenticated(true);
 
-            // Derive Wrapping Key & Decrypt Private Key
-            if (data.user.salt && data.user.encryptedPrivateKey && data.user.iv) {
+            if (data.user.kdfSalt && data.user.validatorHash) {
                 await unlockFn(password, data.user);
             }
 
             return data;
         } catch (error) {
-            console.error(error);
+            console.error("Login Error:", error);
             throw error;
         }
     };
+
 
     const unlock = async (password) => {
         if (!user) throw new Error("No user loaded");
@@ -92,23 +129,24 @@ export const AuthProvider = ({ children }) => {
 
     const unlockFn = async (password, userData) => {
         try {
-            // Decrypt the stored private key using crypto.js
-            // userData.encryptedPrivateKey, salt, iv are generic strings/base64 from backend
-            // Our crypto.js expects Base64 strings.
-            // Backend stores them as provided by Signup.
+            if (!userData.kdfSalt || !userData.encryptedMasterKey || !userData.masterKeyIV) {
+                throw new Error("User has no encryption setup or logic is outdated.");
+            }
 
-            const pKey = await decryptPrivateKey(
-                userData.encryptedPrivateKey,
-                password,
-                userData.salt,
-                userData.iv
-            );
+            const passwordKey = await derivePasswordKey(password, userData.kdfSalt);
 
-            setPrivateKey(pKey);
-            console.log("Private key decrypted and in memory");
+            const mk = await decryptMasterKeyForHKDF(passwordKey, userData.encryptedMasterKey, userData.masterKeyIV);
+
+            if (userData.validatorHash) {
+                const isValid = await checkValidator(userData.validatorHash, mk);
+                if (!isValid) throw new Error("Invalid password (encryption check failed)");
+            }
+
+            setMasterKey(mk);
+            return true;
         } catch (e) {
             console.error("Unlock failed", e);
-            throw new Error("Invalid password or corrupted key");
+            throw new Error(e.message || "Failed to unlock diary.");
         }
     };
 
@@ -119,14 +157,13 @@ export const AuthProvider = ({ children }) => {
     const contextValue = React.useMemo(() => ({
         user,
         isAuthenticated,
-        privateKey,
-        setPrivateKey,
+        masterKey,
         loading,
         login,
         logout,
         unlock,
-        checkAuth
-    }), [user, isAuthenticated, privateKey, loading, login, logout, unlock, checkAuth]);
+        isUnlocked: !!masterKey,
+    }), [user, isAuthenticated, masterKey, loading, login, logout, unlock]);
 
     return (
         <AuthContext.Provider value={contextValue}>

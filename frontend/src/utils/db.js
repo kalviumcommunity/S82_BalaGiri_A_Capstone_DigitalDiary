@@ -2,9 +2,6 @@ export const DB_NAME = 'DiaryCryptoDB';
 export const STORE_NAME = 'keys';
 export const DB_VERSION = 1;
 
-/**
- * Opens the IndexedDB database
- */
 const openDB = () => {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -22,11 +19,6 @@ const openDB = () => {
     });
 };
 
-/**
- * Stores the Encrypted Private Key for the current user
- * @param {string} userId - The unique user identifier
- * @param {object} keyData - { encryptedPrivateKey, salt, iv }
- */
 export const storePrivateKey = async (userId, keyData) => {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -39,9 +31,6 @@ export const storePrivateKey = async (userId, keyData) => {
     });
 };
 
-/**
- * Retrieves the Encrypted Private Key for the current user
- */
 export const getPrivateKey = async (userId) => {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -54,9 +43,6 @@ export const getPrivateKey = async (userId) => {
     });
 };
 
-/**
- * Clears keys (e.g., on logout)
- */
 export const clearKeys = async (userId) => {
     const db = await openDB();
     return new Promise((resolve, reject) => {

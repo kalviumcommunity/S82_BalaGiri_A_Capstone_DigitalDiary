@@ -4,10 +4,7 @@ import { motion, useAnimation } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import FailureAnimation from '../components/FailureAnimation';
 import { useAuth } from '../context/AuthContext';
-import { generateKeyPair, encryptPrivateKey, exportKeyToJWK } from '../utils/crypto';
-import { storePrivateKey } from '../utils/db';
-
-
+import { generateMasterKeyHKDF, derivePasswordKey, encryptMasterKey, deriveAuthToken, createValidator, generateSalt } from '../utils/cryptoUtils';
 
 const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }) => {
   const [username, setUsername] = useState("");
@@ -19,7 +16,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
   const navigate = useNavigate();
 
   const controls = useAnimation();
-  const { login, setPrivateKey } = useAuth();
+  const { login } = useAuth();
 
   const handleRegister = async () => {
     try {
@@ -30,28 +27,30 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
 
       setIsGeneratingKeys(true);
 
-      // 1. Generate RSA Key Pair
-      const keyPair = await generateKeyPair();
+      setIsGeneratingKeys(true);
 
-      // 2. Encrypt Private Key with Password
-      const { encryptedPrivateKey, salt, iv } = await encryptPrivateKey(keyPair.privateKey, password);
+      const kdfSalt = generateSalt();
+      const passwordKey = await derivePasswordKey(password, kdfSalt);
+      const { masterKey, keyMaterial } = await generateMasterKeyHKDF();
+      const { encryptedMasterKey, iv: masterKeyIV } = await encryptMasterKey(keyMaterial, passwordKey);
+      const validatorHash = await createValidator(masterKey);
+      const authToken = await deriveAuthToken(password);
+      console.log("Signup (Frontend): Derived AuthToken length:", authToken.length);
+      console.log("Signup (Frontend): Derived AuthToken preview:", authToken.substring(0, 15) + "...");
 
-      // 3. Export Public Key for server
-      const publicKeyJWK = await exportKeyToJWK(keyPair.publicKey);
-      const publicKeyString = JSON.stringify(publicKeyJWK);
 
-      // 4. Send to Backend
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/signup`, {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const res = await fetch(`${apiUrl}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username,
           email,
-          password, // Used for Auth only
-          publicKey: publicKeyString,
-          encryptedPrivateKey, // Syncing to backend
-          salt, // Syncing to backend
-          iv // Syncing to backend
+          password: authToken,
+          kdfSalt,
+          validatorHash,
+          encryptedMasterKey,
+          masterKeyIV
         })
       });
 
@@ -59,8 +58,6 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       setIsGeneratingKeys(false);
 
       if (res.ok) {
-        // Cookie is set by backend. 
-        // We log in using the password to derive/unlock the key we just set.
         await login(email, password);
 
         navigate("/diary");
@@ -86,8 +83,6 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       setError("Something went wrong during signup.");
     }
   };
-
-
 
   const overlayBg = isDark ? 'bg-[#1B2A4A]/60 border border-white/10' : 'bg-white/60 border border-white/40';
   const textColor = isDark ? 'text-white' : 'text-slate-800';
@@ -147,7 +142,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
             {isGeneratingKeys ? (
               <>
                 <Loader className="animate-spin" size={20} />
-                <span>Generating Keys...</span>
+                <span>Generating Encryption Keys...</span>
               </>
             ) : (
               "Register"

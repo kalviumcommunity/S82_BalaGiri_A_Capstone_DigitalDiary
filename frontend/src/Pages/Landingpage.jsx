@@ -10,8 +10,8 @@ function LandingPage({ isDark, setIsDark, currentTheme }) {
 
   return (
     <div className={`min-h-screen bg-gradient-to-b ${currentTheme.background} text-white overflow-hidden`}>
-      {/* ... your nav code ... */}
-      
+
+
       <div className="relative z-10 text-center px-4 pt-48">
         <h1 className={`text-6xl font-bold mb-6 ${currentTheme.text}`}>Welcome to Your Digital Diary</h1>
         <p className={`text-xl mb-12 max-w-2xl mx-auto ${currentTheme.subtext}`}>
@@ -28,7 +28,6 @@ function LandingPage({ isDark, setIsDark, currentTheme }) {
             <span>Get Started</span>
           </button>
 
-          {/* ✅ Clean Learn More Button */}
           <Link to="/learn-more">
             <button className={`border-2 px-8 py-3 rounded-full font-semibold transition-colors shadow-lg ${currentTheme.buttonOutline}`}>
               Learn More
@@ -37,7 +36,6 @@ function LandingPage({ isDark, setIsDark, currentTheme }) {
         </div>
       </div>
 
-      {/* Login & Signup Modals */}
       {showLogin && (
         <Login
           onClose={() => setShowLogin(false)}

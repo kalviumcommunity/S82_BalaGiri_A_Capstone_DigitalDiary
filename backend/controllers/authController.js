@@ -6,43 +6,58 @@ const { sendMagicLinkEmail } = require('../utils/emailService');
 
 exports.signup = async (req, res) => {
   try {
-    const { username, email, password, publicKey, encryptedPrivateKey, salt, iv } = req.body;
+    const { username, email, password, kdfSalt, validatorHash, encryptedMasterKey, masterKeyIV } = req.body;
+
+
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: 'User already exists' });
+    if (existingUser) return res.status(400).json({ message: 'User with this email already exists' });
+
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) return res.status(400).json({ message: 'Username is already taken' });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new User({
       username,
       email,
-      password,
-      publicKey,
-      encryptedPrivateKey,
-      salt,
-      iv
+      password: hashedPassword,
+      kdfSalt,
+      validatorHash,
+      encryptedMasterKey,
+      masterKeyIV,
+      encryptionVersion: 1
     });
 
+    await newUser.save();
     await newUser.save();
 
     const token = jwt.sign(
       { id: newUser._id, email: newUser.email },
       process.env.JWT_SECRET,
-      { expiresIn: '5m' }
+      { expiresIn: '1h' }
     );
 
-    // Set HttpOnly Cookie
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // true in prod
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 3600000 // 1 hour
+      maxAge: 3600000
     });
 
     res.status(201).json({
       success: true,
+      token,
       user: {
         id: newUser._id,
         email: newUser.email,
-        username: newUser.username
+        username: newUser.username,
+        kdfSalt: newUser.kdfSalt,
+        kdfIterations: newUser.kdfIterations,
+        validatorHash: newUser.validatorHash,
+        encryptedMasterKey: newUser.encryptedMasterKey,
+        masterKeyIV: newUser.masterKeyIV
       }
     });
 
@@ -56,35 +71,40 @@ exports.signup = async (req, res) => {
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
+
+
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '5m' });
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // Set HttpOnly Cookie
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 3600000 // 1 hour
+      maxAge: 3600000
     });
 
     res.status(200).json({
       success: true,
+      token,
       user: {
         id: user._id,
         email: user.email,
         username: user.username,
-        publicKey: user.publicKey,
-        encryptedPrivateKey: user.encryptedPrivateKey,
-        salt: user.salt,
-        iv: user.iv
+        kdfSalt: user.kdfSalt,
+        kdfIterations: user.kdfIterations,
+        validatorHash: user.validatorHash,
+        encryptedMasterKey: user.encryptedMasterKey,
+        masterKeyIV: user.masterKeyIV
       }
     });
   } catch (err) {
+    console.error("Login Error:", err);
     res.status(500).json({ message: "Login failed" });
   }
 };
@@ -94,31 +114,25 @@ exports.requestMagicLink = async (req, res) => {
 
   try {
     let user = await User.findOne({ email });
-    // If user doesn't exist, Create one (optional strategy: only allow existing? Spec says "Auto-create user if not exists")
     if (!user) {
-      user = new User({ email }); // Username/password optional
+      return res.status(400).json({ message: 'User not found. Please sign up to initialize encryption.' });
     }
 
     const token = crypto.randomBytes(32).toString('hex');
     user.magicLinkToken = crypto.createHash('sha256').update(token).digest('hex');
-    user.magicLinkExpires = Date.now() + 15 * 60 * 1000; // 15 mins
+    user.magicLinkExpires = Date.now() + 15 * 60 * 1000;
 
     await user.save();
 
-    // Note: In production with separate frontend, this URL usually points to frontend, which then calls API.
-    // User request says: "On link click: Verify token...". Usually link -> frontend -> API.
-    // I will point to frontend route /verify-login?token=...
-    const frontendUrl = `http://localhost:5173/verify-login?token=${token}`; // Assuming default Vite port or from env
+    const frontendUrl = `http://localhost:5173/verify-login?token=${token}`;
 
     await sendMagicLinkEmail(user.email, frontendUrl);
 
     res.status(200).json({ message: 'Magic link sent to email' });
 
   } catch (err) {
-    console.error('[Auth] Error during magic link request:', err);
-
-    // If it's an email error, we might want to be explicit, but 500 is generally correct for server failure
-    res.status(500).json({ message: 'Error sending magic link. Please check email configuration.' });
+    console.error('[Auth] Error:', err);
+    res.status(500).json({ message: 'Error sending magic link.' });
   }
 };
 
@@ -140,9 +154,20 @@ exports.verifyMagicLink = async (req, res) => {
     user.magicLinkExpires = undefined;
     await user.save();
 
-    const jwtToken = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '5m' });
+    const jwtToken = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    res.status(200).json({ token: jwtToken, user: { email: user.email, username: user.username } });
+    res.status(200).json({
+      token: jwtToken,
+      user: {
+        email: user.email,
+        username: user.username,
+        kdfSalt: user.kdfSalt,
+        kdfIterations: user.kdfIterations,
+        validatorHash: user.validatorHash,
+        encryptedMasterKey: user.encryptedMasterKey,
+        masterKeyIV: user.masterKeyIV
+      }
+    });
 
   } catch (err) {
     console.error(err);
@@ -161,26 +186,37 @@ exports.logoutUser = (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ isAuthenticated: false });
+    let token = null;
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    } else if (req.cookies.token) {
+      token = req.cookies.token;
+    }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password');
-    if (!user) return res.status(401).json({ isAuthenticated: false });
+    if (!token) return res.json({ isAuthenticated: false, user: null });
 
-    res.status(200).json({
-      isAuthenticated: true,
-      user: {
-        id: user._id,
-        email: user.email,
-        username: user.username,
-        publicKey: user.publicKey,
-        encryptedPrivateKey: user.encryptedPrivateKey,
-        salt: user.salt,
-        iv: user.iv
-      }
-    });
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select('-password');
+      if (!user) return res.json({ isAuthenticated: false, user: null });
+
+      res.status(200).json({
+        isAuthenticated: true,
+        user: {
+          id: user._id,
+          email: user.email,
+          username: user.username,
+          kdfSalt: user.kdfSalt,
+          kdfIterations: user.kdfIterations,
+          validatorHash: user.validatorHash,
+          encryptedMasterKey: user.encryptedMasterKey,
+          masterKeyIV: user.masterKeyIV
+        }
+      });
+    } catch (e) {
+      return res.json({ isAuthenticated: false, user: null });
+    }
   } catch (err) {
-    res.status(401).json({ isAuthenticated: false });
+    res.json({ isAuthenticated: false, user: null });
   }
 };

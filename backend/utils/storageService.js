@@ -4,7 +4,8 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
-// Configure Cloudinary if keys exist
+const path = require('path');
+
 const hasCloudinaryKeys = process.env.CLOUDINARY_CLOUD_NAME &&
     process.env.CLOUDINARY_API_KEY &&
     process.env.CLOUDINARY_API_SECRET;
@@ -17,7 +18,8 @@ if (hasCloudinaryKeys) {
     });
 }
 
-// Local Storage Setup
+}
+
 const ensureDirExists = (dir) => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -40,7 +42,8 @@ const localStorageEngine = multer.diskStorage({
     }
 });
 
-// Cloudinary Storage Setup
+});
+
 const cloudinaryStorageEngine = hasCloudinaryKeys ? new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
@@ -52,7 +55,7 @@ const cloudinaryStorageEngine = hasCloudinaryKeys ? new CloudinaryStorage({
             resource_type = 'image';
         } else if (file.fieldname === 'audio') {
             folder = 'digital_diary/audio';
-            resource_type = 'video'; // Cloudinary treats audio as video/raw usually
+            resource_type = 'video';
         }
 
         return {
@@ -63,7 +66,8 @@ const cloudinaryStorageEngine = hasCloudinaryKeys ? new CloudinaryStorage({
     },
 }) : null;
 
-// Export configured storage
+}) : null;
+
 module.exports = {
     storage: hasCloudinaryKeys ? cloudinaryStorageEngine : localStorageEngine,
     isCloudinary: hasCloudinaryKeys

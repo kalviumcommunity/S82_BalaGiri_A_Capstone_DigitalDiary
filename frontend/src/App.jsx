@@ -16,7 +16,7 @@ import { useAuth } from './context/AuthContext';
 
 const themes = {
   dark: {
-    background: 'from-[#020617] via-[#0f172a] to-[#1e293b]', // Deep slate/night
+    background: 'from-[#020617] via-[#0f172a] to-[#1e293b]',
     text: 'text-[#F8FAFC]',
     subtext: 'text-[#94A3B8]',
     mountain1: 'bg-[#0f172a]',
@@ -26,7 +26,7 @@ const themes = {
     buttonOutline: 'backdrop-blur-xl bg-transparent border border-white/20 text-white hover:bg-white/10 active:scale-95 transition-all duration-300',
   },
   light: {
-    background: 'from-[#E0F2FE] via-[#BAE6FD] to-[#7DD3FC]', // Soft sky
+    background: 'from-[#E0F2FE] via-[#BAE6FD] to-[#7DD3FC]',
     text: 'text-[#0f172a]',
     subtext: 'text-[#334155]',
     mountain1: 'bg-[#7DD3FC]',
@@ -54,8 +54,6 @@ function App() {
   };
 
   const currentTheme = isDark ? themes.dark : themes.light;
-
-  /* Floating Particles - Memoized to prevent recalculation */
   const particles = React.useMemo(() => [...Array(30)].map((_, i) => ({
     id: i,
     initialX: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
@@ -74,7 +72,6 @@ function App() {
                 <BookHeart className="w-6 h-6 sm:w-8 sm:h-8" />
                 <span className="text-xl sm:text-2xl font-bold tracking-tight">MyDiary</span>
               </div>
-              {/* Mobile Theme Toggle (Visible only on mobile) */}
               <button
                 onClick={() => setIsDark(!isDark)}
                 className="p-2 rounded-full hover:bg-white/20 transition-colors text-white sm:hidden"
@@ -88,7 +85,6 @@ function App() {
               <Link to="/features" className="hover:text-cyan-300 transition-colors">Features</Link>
               <Link to="/about" className="hover:text-cyan-300 transition-colors">About</Link>
               <Link to="/contact" className="hover:text-cyan-300 transition-colors">Contact</Link>
-              {/* Desktop Theme Toggle */}
               <button
                 onClick={() => setIsDark(!isDark)}
                 className="p-2 rounded-full hover:bg-white/20 transition-colors text-white hidden sm:block"
@@ -103,7 +99,6 @@ function App() {
       <Routes>
         <Route path="/" element={
           <div className="relative min-h-screen overflow-hidden flex flex-col justify-center items-center">
-            {/* Animated Background Orbs */}
             <motion.div
               animate={{
                 x: [0, 100, -50, 0],
@@ -146,7 +141,6 @@ function App() {
                 ) : (
                   <Sun className="w-full h-full text-amber-100 drop-shadow-[0_0_40px_rgba(251,191,36,0.6)]" />
                 )}
-                {/* Glow behind the icon */}
                 <div className={`absolute inset-0 rounded-full blur-2xl opacity-40 ${isDark ? 'bg-[#E1E7FF]' : 'bg-amber-300'}`} />
               </motion.div>
             </div>

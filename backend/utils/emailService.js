@@ -1,8 +1,6 @@
 const nodemailer = require('nodemailer');
 
-// Helper to get transporter based on environment
 const getTransporter = async () => {
-    // 1. Use Gmail/SMTP if configured in ENV (Preferred for Production/Real usage)
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         return nodemailer.createTransport({
             service: process.env.EMAIL_SERVICE || 'gmail',
@@ -13,8 +11,6 @@ const getTransporter = async () => {
         });
     }
 
-    // 2. Fallback to Ethereal for development only if no env provided
-    console.warn("No EMAIL_USER/EMAIL_PASS in .env. Attempting to use Ethereal (Test Account)...");
     try {
         const testAccount = await nodemailer.createTestAccount();
         return nodemailer.createTransport({
@@ -55,7 +51,6 @@ exports.sendMagicLinkEmail = async (email, link) => {
     `
     };
 
-    // Let errors bubble up to the controller
     const info = await transporter.sendMail(mailOptions);
 
     return info;

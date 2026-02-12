@@ -13,7 +13,7 @@ export const useDialog = () => {
 export const DialogProvider = ({ children }) => {
     const [dialogState, setDialogState] = useState({
         isOpen: false,
-        type: null, // 'alert', 'confirm', 'prompt'
+        type: null,
         message: '',
         defaultValue: '',
         resolve: null,
@@ -41,7 +41,7 @@ export const DialogProvider = ({ children }) => {
         }
     }, []);
 
-    // Helper functions that mimic window methods
+
     const customAlert = useCallback(async (message) => {
         await openDialog('alert', message);
         return;

@@ -10,8 +10,11 @@ import CalendarView from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import '../customCalendar.css';
 import UnlockModal from '../components/UnlockModal';
-import { getPrivateKey } from '../utils/db';
-import { decryptPrivateKey, decryptData, unwrapAESKey, base64ToArrayBuffer, decryptFile } from '../utils/crypto';
+import {
+  deriveEntryKey,
+  decryptWithKey,
+  decryptFileWithKey
+} from '../utils/cryptoUtils';
 
 function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,13 +26,12 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const navigate = useNavigate();
   const { alert, confirm } = useDialog();
-  const { logout, user, privateKey, setPrivateKey } = useAuth();
+  const { logout, user, masterKey, unlock } = useAuth();
 
   const [decryptedEntries, setDecryptedEntries] = useState([]);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState(null);
   const [isDecrypting, setIsDecrypting] = useState(false);
-  // State for decrypted media URLs (Blob URLs)
   const [mediaUrls, setMediaUrls] = useState({ photos: [], audio: null });
   const [loadingMedia, setLoadingMedia] = useState(false);
 
@@ -43,24 +45,34 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     const urlsToRevoke = [];
 
     const decryptMedia = async () => {
+      if (!masterKey) return;
+
       setLoadingMedia(true);
       const newMediaUrls = { photos: [], audio: null };
-      const token = localStorage.getItem('token');
 
       try {
-        // Decrypt Photos
         if (viewEntry.photos && viewEntry.photos.length > 0) {
           newMediaUrls.photos = await Promise.all(viewEntry.photos.map(async (photo, idx) => {
-            // Handle legacy strings (skip or show placeholder)
-            if (typeof photo === 'string') return null;
-
             try {
-              const filename = photo.path.split('/').pop();
-              const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/file/photos/${filename}`);
+              const filename = photo.id || photo.path?.split('/').pop();
+              if (!filename) return null;
+
+              const token = localStorage.getItem('token');
+              const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/file/photos/${filename}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
               if (!res.ok) throw new Error('Fetch failed');
 
               const encryptedBlob = await res.blob();
-              const decryptedBlob = await decryptFile(encryptedBlob, viewEntry.aesKey, photo.mimeType);
+              const entryKey = await deriveEntryKey(masterKey, viewEntry.entrySalt);
+
+              const decryptedBlob = await decryptFileWithKey(
+                encryptedBlob,
+                photo.iv,
+                entryKey,
+                photo.mimeType
+              );
+
               const url = URL.createObjectURL(decryptedBlob);
               urlsToRevoke.push(url);
               return url;
@@ -71,18 +83,30 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
           }));
         }
 
-        // Decrypt Audio
         if (viewEntry.audio && typeof viewEntry.audio === 'object') {
           try {
-            const filename = viewEntry.audio.path.split('/').pop();
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/file/audio/${filename}`);
-            if (!res.ok) throw new Error('Fetch failed');
+            const filename = viewEntry.audio.id || viewEntry.audio.path?.split('/').pop();
+            if (filename) {
+              const token = localStorage.getItem('token');
+              const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/file/audio/${filename}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (!res.ok) throw new Error('Fetch failed');
 
-            const encryptedBlob = await res.blob();
-            const decryptedBlob = await decryptFile(encryptedBlob, viewEntry.aesKey, viewEntry.audio.mimeType);
-            const url = URL.createObjectURL(decryptedBlob);
-            urlsToRevoke.push(url);
-            newMediaUrls.audio = url;
+              const encryptedBlob = await res.blob();
+              const entryKey = await deriveEntryKey(masterKey, viewEntry.entrySalt);
+
+              const decryptedBlob = await decryptFileWithKey(
+                encryptedBlob,
+                viewEntry.audio.iv,
+                entryKey,
+                viewEntry.audio.mimeType
+              );
+
+              const url = URL.createObjectURL(decryptedBlob);
+              urlsToRevoke.push(url);
+              newMediaUrls.audio = url;
+            }
           } catch (e) {
             console.error("Failed to load audio", e);
           }
@@ -91,7 +115,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
         if (isMounted) {
           setMediaUrls(newMediaUrls);
         } else {
-          // specific cleanup if unmounted during async
           urlsToRevoke.forEach(u => URL.revokeObjectURL(u));
         }
 
@@ -108,10 +131,8 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       isMounted = false;
       urlsToRevoke.forEach(u => URL.revokeObjectURL(u));
     };
-  }, [viewEntry]);
+  }, [viewEntry, masterKey]);
 
-
-  // If isDark is not passed (e.g. standalone test), try to derive it or default to true
   const isDarkMode = isDark !== undefined ? isDark : currentTheme?.text?.includes('E1E7FF');
   const text = isDarkMode ? 'text-white' : 'text-slate-800';
   const subtext = isDarkMode ? 'text-white/80' : 'text-slate-600';
@@ -120,23 +141,26 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const calendarTheme = isDarkMode ? 'dark-calendar' : 'light-calendar';
 
   const fetchEntries = useCallback(async () => {
-    if (!user) { // Check user object or isAuthenticated from context? isAuthenticated is better but requires prop or useAuth
-      // ... existing logic checked token, but we are inside component. 
-      // Actually `useAuth` is used: `const { logout, user, privateKey, setPrivateKey } = useAuth();`
-      // But `isAuthenticated` isn't destructured. Let's rely on `user` or `logout` if call fails. 
-      // Wait, `fetchEntries` is called on mount. 
-      // If protected route works, we are auth'd.
-    }
-
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/all`);
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/all`, {
+        headers,
+      });
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        if (res.status === 401) throw new Error('Session expired');
+        throw new Error(`Server returned non-JSON response: ${res.statusText}`);
+      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to fetch entries');
       setEntries(data || []);
     } catch (err) {
       console.error('Error fetching entries:', err);
-      if (err.message === 'Session expired') {
+      if (err.message === 'Session expired' || err.message === 'No token provided' || err.message === 'Invalid token') {
         await alert('Session expired. Please login again.');
         logout();
       }
@@ -151,16 +175,30 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     if (!await confirm('Are you sure you want to delete this entry?')) return;
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/delete/${id}`, {
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/delete/${id}`, {
         method: 'DELETE',
+        headers,
       });
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        if (res.status === 401) throw new Error('Session expired');
+        throw new Error(`Server returned non-JSON response`);
+      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       fetchEntries();
     } catch (error) {
       console.error('Delete failed:', error);
-      await alert('Failed to delete entry.');
+      if (error.message === 'Session expired') {
+        logout();
+      } else {
+        await alert('Failed to delete entry.');
+      }
     }
   }, [confirm, alert, logout, fetchEntries]);
 
@@ -168,7 +206,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [selectedDate, setSelectedDate] = useState(null);
 
   const onDateChange = useCallback((date) => {
-    // If clicking already selected date, clear filter
     if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
       setSelectedDate(null);
     } else {
@@ -183,14 +220,13 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     let matchesDate = true;
     if (selectedDate) {
       const entryDateInfo = new Date(entry.date);
-      const selectedDateStr = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format in CA locale usually
+      const selectedDateStr = selectedDate.toLocaleDateString('en-CA');
       matchesDate = entry.date === selectedDateStr;
     }
 
     return matchesSearch && matchesMood && matchesDate;
-  }), [entries, searchTerm, selectedMood, selectedDate]);
+  }), [entries, searchTerm, selectedMood, selectedDate, decryptedEntries]);
 
-  // Group entries by Month Year
   const groupedEntries = useMemo(() => filteredEntries.reduce((acc, entry) => {
     const date = new Date(entry.date);
     const monthYear = date.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -199,7 +235,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     return acc;
   }, {}), [filteredEntries]);
 
-  const entryDates = useMemo(() => new Set(entries.map(e => e.date)), [entries]);
+  const entryDates = useMemo(() => new Set(decryptedEntries.map(e => e.date)), [decryptedEntries]);
 
   const tileContent = useCallback(({ date, view }) => {
     if (view === 'month') {
@@ -219,102 +255,75 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     setIsUnlocking(true);
     setUnlockError(null);
     try {
-      const storedKeyData = await getPrivateKey(user._id || user.id);
-      if (!storedKeyData) {
-        setUnlockError("No encrypted key found locally. Please re-login.");
-        return;
-      }
-      const pKey = await decryptPrivateKey(storedKeyData.encryptedPrivateKey, password, storedKeyData.salt, storedKeyData.iv);
-      setPrivateKey(pKey);
+      await unlock(password);
     } catch (err) {
       console.error(err);
-      setUnlockError("Incorrect password or key corruption.");
+      setUnlockError("Incorrect password.");
     } finally {
       setIsUnlocking(false);
     }
   };
 
   const processEntry = useCallback(async (entry) => {
-    // If already processed or not encrypted, return as is
-    if (!entry.encryptedKey || !entry.iv) return entry;
+    if (!entry.entrySalt || (!entry.iv && !entry.content)) return entry;
 
     try {
-      // 1. Unwrap AES Key
-      const encryptedKeyBuffer = base64ToArrayBuffer(entry.encryptedKey);
-      const aesKey = await unwrapAESKey(encryptedKeyBuffer, privateKey);
+      const entryKey = await deriveEntryKey(masterKey, entry.entrySalt);
+      const crypto = await import('../utils/cryptoUtils');
 
-      // 2. Decrypt Content
-      const contentBuffer = base64ToArrayBuffer(entry.content);
-      const ivBuffer = base64ToArrayBuffer(entry.iv);
-      const decryptedContent = await decryptData(contentBuffer, ivBuffer, aesKey, true);
+      if (entry.payload) {
+        const decryptedData = await crypto.decryptEntryPayload(entry.payload, entry.iv, entryKey);
+        return { ...entry, ...decryptedData };
+      }
 
-      // 3. Decrypt Title (Format: IV:Ciphertext)
+      const decryptedContent = await decryptWithKey(entry.content, entry.iv, entryKey);
+
       let decryptedTitle = entry.title;
       if (entry.title && entry.title.includes(':')) {
-        const parts = entry.title.split(':');
-        if (parts.length === 2) {
-          const [tIV, tCipher] = parts;
-          try {
-            decryptedTitle = await decryptData(
-              base64ToArrayBuffer(tCipher),
-              base64ToArrayBuffer(tIV),
-              aesKey,
-              true
-            );
-          } catch (e) {
-            console.warn("Title decryption failed, might be plaintext or corrupt", e);
-            // Keep original if fail (or show error?)
-          }
-        }
+        const [tIV, tCipher] = entry.title.split(':');
+        try {
+          decryptedTitle = await decryptWithKey(tCipher, tIV, entryKey);
+        } catch (e) { }
       }
 
-      // 4. Decrypt Mood (Format: IV:Ciphertext)
       let decryptedMood = entry.mood;
       if (entry.mood && entry.mood.includes(':')) {
-        const parts = entry.mood.split(':');
-        if (parts.length === 2) {
-          const [mIV, mCipher] = parts;
-          try {
-            decryptedMood = await decryptData(
-              base64ToArrayBuffer(mCipher),
-              base64ToArrayBuffer(mIV),
-              aesKey,
-              true
-            );
-          } catch (e) {
-            console.warn("Mood decryption failed", e);
-          }
-        }
+        const [mIV, mCipher] = entry.mood.split(':');
+        try {
+          decryptedMood = await decryptWithKey(mCipher, mIV, entryKey);
+        } catch (e) { }
       }
 
-      return { ...entry, content: decryptedContent, title: decryptedTitle, mood: decryptedMood, aesKey };
+      return { ...entry, content: decryptedContent, title: decryptedTitle, mood: decryptedMood };
     } catch (err) {
-      console.error("Failed to decrypt entry:", entry._id, err); // Don't log title if it might be sensitive/encrypted
-      return { ...entry, content: "⚠️ Decryption Failed" };
+      console.error("Failed to decrypt entry:", entry._id, err);
+      return { ...entry, content: "⚠️ Decryption Failed", title: "Error" };
     }
-  }, [privateKey]);
+  }, [masterKey]);
 
   useEffect(() => {
-    if (privateKey && entries.length > 0) {
+    if (masterKey && entries.length > 0) {
       setIsDecrypting(true);
       Promise.all(entries.map(processEntry)).then(decrypted => {
-        setDecryptedEntries(decrypted);
+        const sorted = decrypted.sort((a, b) => new Date(b.date) - new Date(a.date));
+        setDecryptedEntries(sorted);
         setIsDecrypting(false);
       });
     } else {
       setDecryptedEntries(entries);
     }
-  }, [entries, privateKey, processEntry]);
+  }, [entries, masterKey, processEntry]);
 
   return (
-    <div className={`pt-20 sm:pt-24 px-4 md:px-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-[#4E71FF]/0' : ''}`}> {/* bg handled by App wrapper mostly */}
-      {!privateKey && (
+    <div className={`pt-20 sm:pt-24 px-4 md:px-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-[#4E71FF]/0' : ''}`}>
+      {!masterKey && (
         <UnlockModal
           onUnlock={handleUnlock}
           error={unlockError}
           isUnlocking={isUnlocking}
         />
       )}
+
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 md:gap-0">
         <div className="flex items-center gap-4">
           <button
@@ -355,7 +364,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
             <LogOut className="w-5 h-5" />
           </button>
 
-          {/* Calendar Popover */}
           {showCalendar && (
             <div className="absolute top-16 right-0 p-4 z-50 animate-in fade-in zoom-in duration-200">
               <div className={`${isDarkMode ? 'bg-[#1e293b]' : 'bg-white'} rounded-2xl shadow-2xl p-4 border ${borderColor} w-[350px]`}>
@@ -403,7 +411,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       </div>
 
       <div className="relative">
-        {/* Floating Filter Trigger - Bottom Right Custom Style */}
         <motion.button
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -415,7 +422,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
           {isDarkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
         </motion.button>
 
-        {/* Filter Drawer Overlay */}
         <AnimatePresence>
           {isFilterOpen && (
             <>
@@ -470,7 +476,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
                       </select>
                     </div>
 
-                    {/* Clear Filters */}
                     {(searchTerm || selectedMood || selectedDate) && (
                       <button
                         onClick={() => { setSearchTerm(''); setSelectedMood(''); setSelectedDate(null); }}
@@ -487,38 +492,24 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
         </AnimatePresence>
 
         <div className="max-w-4xl mx-auto space-y-8">
-
-
-          {/* Right Area: Entry List */}
           {Object.keys(groupedEntries).length === 0 ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className={`${bgOverlay} backdrop-blur-2xl rounded-3xl p-8 sm:p-16 text-center border ${borderColor} shadow-2xl flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px]`}
             >
-              <motion.div
-                animate={{
-                  y: [0, -10, 0],
-                  rotate: [0, 5, -5, 0]
-                }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="mb-8 relative"
-              >
+              <div className="mb-8 relative">
                 <div className={`p-8 rounded-full ${isDarkMode ? 'bg-indigo-500/10' : 'bg-blue-100'}`}>
                   <Search className={`w-16 h-16 ${isDarkMode ? 'text-indigo-400' : 'text-blue-500'} opacity-80`} />
                 </div>
-                {/* Decorative elements */}
-                <div className="absolute top-0 right-0 w-4 h-4 bg-cyan-400 rounded-full animate-ping" />
-              </motion.div>
-
+              </div>
               <h3 className={`text-3xl font-bold mb-3 ${text}`}>No entries found</h3>
               <p className={`text-lg ${subtext} max-w-md mx-auto mb-8 leading-relaxed`}>
                 We couldn't find any stories matching your current filters. Try adjusting your search or create a new memory.
               </p>
-
               <button
                 onClick={() => { setSearchTerm(''); setSelectedMood(''); setSelectedDate(null); }}
-                className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105 transition-all duration-300"
+                className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold shadow-lg shadow-cyan-500/25 transition-all duration-300"
               >
                 Clear all filters
               </button>
@@ -547,7 +538,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
                     </div>
 
                     <div className="flex justify-between items-start mb-3">
-                      <h2 className={`text-2xl font-bold ${text} tracking-tight pr-12 line-clamp-1`}>{entry.title}</h2>
+                      <h2 className={`text-2xl font-bold ${text} tracking-tight pr-12 line-clamp-1`}>{entry.title || "Untitled"}</h2>
                     </div>
 
                     <div className="flex items-center gap-3 mb-4 text-sm">
@@ -575,113 +566,102 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
               </div>
             </div>
           ))}
-
         </div>
       </div>
 
-      {/* Entry view modal */}
-      {
-        viewEntry && (
-          <div className="fixed inset-0 flex justify-center items-center bg-black/60 backdrop-blur-sm z-50 p-4">
-            <div className={`bg-[#1e293b] rounded-3xl max-w-3xl w-full relative shadow-2xl max-h-[90vh] border border-white/10 text-white flex flex-col overflow-hidden mx-4`}>
-              {/* Fixed Header */}
-              <div className="p-6 sm:p-8 pb-0 shrink-0 relative">
-                <button
-                  onClick={() => setViewEntry(null)}
-                  className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white z-10"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-                <h2 className="text-2xl sm:text-4xl font-bold mb-2 tracking-tight pr-10">{viewEntry.title}</h2>
-                <div className="flex flex-wrap items-center gap-2 sm:space-x-4 text-sm text-gray-400 border-b border-white/5 pb-6">
-                  <span className="flex items-center"><Calendar className="w-4 h-4 mr-1" /> {viewEntry.date}</span>
-                  {viewEntry.mood && <span className="bg-cyan-900/30 text-cyan-300 px-3 py-1 rounded-full border border-cyan-500/20">{viewEntry.mood}</span>}
-                </div>
+      {viewEntry && (
+        <div className="fixed inset-0 flex justify-center items-center bg-black/60 backdrop-blur-sm z-50 p-4">
+          <div className={`bg-[#1e293b] rounded-3xl max-w-3xl w-full relative shadow-2xl max-h-[90vh] border border-white/10 text-white flex flex-col overflow-hidden mx-4`}>
+            <div className="p-6 sm:p-8 pb-0 shrink-0 relative">
+              <button
+                onClick={() => setViewEntry(null)}
+                className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white z-10"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <h2 className="text-2xl sm:text-4xl font-bold mb-2 tracking-tight pr-10">{viewEntry.title}</h2>
+              <div className="flex flex-wrap items-center gap-2 sm:space-x-4 text-sm text-gray-400 border-b border-white/5 pb-6">
+                <span className="flex items-center"><Calendar className="w-4 h-4 mr-1" /> {viewEntry.date}</span>
+                {viewEntry.mood && <span className="bg-cyan-900/30 text-cyan-300 px-3 py-1 rounded-full border border-cyan-500/20">{viewEntry.mood}</span>}
+              </div>
+            </div>
+
+            <div className="overflow-y-auto p-6 sm:p-8 pt-6 custom-scrollbar">
+              <div className="prose prose-invert max-w-none mb-8">
+                <p className="whitespace-pre-wrap text-lg leading-relaxed text-gray-200">{viewEntry.content}</p>
               </div>
 
-              {/* Scrollable Content */}
-              <div className="overflow-y-auto p-6 sm:p-8 pt-6 custom-scrollbar">
-                <div className="prose prose-invert max-w-none mb-8">
-                  <p className="whitespace-pre-wrap text-lg leading-relaxed text-gray-200">{viewEntry.content}</p>
+              {loadingMedia && (
+                <div className="flex justify-center p-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+                  <span className="ml-2 text-gray-400">Decrypting media...</span>
                 </div>
+              )}
 
-                {loadingMedia && (
-                  <div className="flex justify-center p-4">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
-                    <span className="ml-2 text-gray-400">Decrypting media...</span>
+              {!loadingMedia && mediaUrls.photos && mediaUrls.photos.length > 0 && (
+                <div className="mb-8">
+                  <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-3">Photos</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {mediaUrls.photos.map((photoUrl, idx) => (
+                      photoUrl ? (
+                        <img
+                          key={idx}
+                          src={photoUrl}
+                          alt={`Diary photo ${idx + 1}`}
+                          className="w-full h-40 object-cover rounded-xl shadow-lg hover:scale-105 transition-transform cursor-pointer border border-white/5"
+                          onClick={() => window.open(photoUrl, '_blank')}
+                        />
+                      ) : null
+                    ))}
                   </div>
-                )}
-
-                {/* Photos */}
-                {!loadingMedia && mediaUrls.photos && mediaUrls.photos.length > 0 && (
-                  <div className="mb-8">
-                    <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-3">Photos</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {mediaUrls.photos.map((photoUrl, idx) => (
-                        photoUrl ? (
-                          <img
-                            key={idx}
-                            src={photoUrl}
-                            alt={`Diary photo ${idx + 1}`}
-                            className="w-full h-40 object-cover rounded-xl shadow-lg hover:scale-105 transition-transform cursor-pointer border border-white/5"
-                            onClick={() => window.open(photoUrl, '_blank')}
-                          />
-                        ) : null
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Audio */}
-                {!loadingMedia && mediaUrls.audio && (
-                  <div className="mb-6">
-                    <p className="text-sm font-semibold mb-3 text-gray-400 uppercase tracking-wider pl-1">Voice Note</p>
-                    <CustomAudioPlayer
-                      src={mediaUrls.audio}
-                      isDarkMode={true}
-                    />
-                  </div>
-                )}
-
-                <div className="mt-8 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
-                  <button
-                    onClick={async () => {
-                      if (await confirm('Are you sure you want to delete this entry?')) {
-                        handleDelete(viewEntry._id);
-                        setViewEntry(null);
-                      }
-                    }}
-                    className="w-full sm:w-auto px-6 py-2 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/10 font-medium transition-colors flex items-center justify-center space-x-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span>Delete</span>
-                  </button>
-                  <button onClick={() => { setEntryToEdit(viewEntry); setViewEntry(null); }} className="w-full sm:w-auto px-6 py-2 bg-yellow-600/20 text-yellow-500 rounded-xl hover:bg-yellow-600/30 font-medium transition-colors flex items-center justify-center space-x-2">
-                    <Pencil className="w-4 h-4" />
-                    <span>Edit Entry</span>
-                  </button>
                 </div>
+              )}
+
+              {!loadingMedia && mediaUrls.audio && (
+                <div className="mb-6">
+                  <p className="text-sm font-semibold mb-3 text-gray-400 uppercase tracking-wider pl-1">Voice Note</p>
+                  <CustomAudioPlayer
+                    src={mediaUrls.audio}
+                    isDarkMode={true}
+                  />
+                </div>
+              )}
+
+              <div className="mt-8 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <button
+                  onClick={async () => {
+                    if (await confirm('Are you sure you want to delete this entry?')) {
+                      handleDelete(viewEntry._id);
+                      setViewEntry(null);
+                    }
+                  }}
+                  className="w-full sm:w-auto px-6 py-2 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/10 font-medium transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete</span>
+                </button>
+                <button onClick={() => { setEntryToEdit(viewEntry); setViewEntry(null); }} className="w-full sm:w-auto px-6 py-2 bg-yellow-600/20 text-yellow-500 rounded-xl hover:bg-yellow-600/30 font-medium transition-colors flex items-center justify-center space-x-2">
+                  <Pencil className="w-4 h-4" />
+                  <span>Edit Entry</span>
+                </button>
               </div>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
-      {/* New/Edit Entry Modal */}
-      {
-        isNewEntryOpen || entryToEdit ? (
-          <NewEntryModal
-            onClose={() => {
-              setIsNewEntryOpen(false);
-              setEntryToEdit(null);
-            }}
-            onSave={fetchEntries}
-            currentTheme={currentTheme}
-            entry={entryToEdit}
-          />
-        ) : null
-      }
-    </div >
+      {isNewEntryOpen || entryToEdit ? (
+        <NewEntryModal
+          onClose={() => {
+            setIsNewEntryOpen(false);
+            setEntryToEdit(null);
+          }}
+          onSave={fetchEntries}
+          currentTheme={currentTheme}
+          entry={entryToEdit}
+        />
+      ) : null}
+    </div>
   );
 }
 

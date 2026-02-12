@@ -1,25 +1,16 @@
 const mongoose = require('mongoose');
 
 const diaryEntrySchema = new mongoose.Schema({
-  title: { type: String, required: true }, // Encrypted (Format: IV:Ciphertext)
-  content: { type: String, required: true },
-  iv: { type: String }, // Initialization Vector for content
-  encryptedKey: { type: String }, // AES key encrypted with user public key
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  mood: { type: String }, // Encrypted (Format: IV:Ciphertext)
-  date: { type: String, required: true },
-  photos: [{
-    path: { type: String, required: true },
-    iv: { type: String, required: true },
-    mimeType: { type: String, required: true },
-    originalName: { type: String }
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+
+  payload: { type: String, required: true },
+  iv: { type: String, required: true },
+  entrySalt: { type: String, required: true },
+  attachments: [{
+    type: String
   }],
-  audio: {
-    path: { type: String },
-    iv: { type: String },
-    mimeType: { type: String },
-    originalName: { type: String }
-  }
-});
+  encryptionVersion: { type: Number, default: 2 }
+
+}, { timestamps: false });
 
 module.exports = mongoose.model('DiaryEntry', diaryEntrySchema);
