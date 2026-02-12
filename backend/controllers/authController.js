@@ -6,41 +6,49 @@ const { sendMagicLinkEmail } = require('../utils/emailService');
 
 exports.signup = async (req, res) => {
   try {
-    // New Flow: Client sends AuthToken as 'password', plus KDF fields
     const { username, email, password, kdfSalt, validatorHash, encryptedMasterKey, masterKeyIV } = req.body;
 
+
+
     const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: 'User already exists' });
+    if (existingUser) return res.status(400).json({ message: 'User with this email already exists' });
+
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) return res.status(400).json({ message: 'Username is already taken' });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new User({
       username,
       email,
-      password, // This is the AuthToken from client, hashed by pre-save hook
-      kdfSalt, // PUBLIC: Random salt for client-side PBKDF2
-      validatorHash, // PUBLIC: Encrypted "Validator" string
+      password: hashedPassword,
+      kdfSalt,
+      validatorHash,
       encryptedMasterKey,
       masterKeyIV,
       encryptionVersion: 1
     });
 
     await newUser.save();
+    await newUser.save();
 
     const token = jwt.sign(
       { id: newUser._id, email: newUser.email },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' } // Increased to 1h to match cookie
+      { expiresIn: '1h' }
     );
 
-    // Set HttpOnly Cookie
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 3600000 // 1 hour
+      maxAge: 3600000
     });
 
     res.status(201).json({
       success: true,
+      token,
       user: {
         id: newUser._id,
         email: newUser.email,
@@ -61,13 +69,15 @@ exports.signup = async (req, res) => {
 
 
 exports.loginUser = async (req, res) => {
-  const { email, password } = req.body; // 'password' here is the AuthToken
+  const { email, password } = req.body;
   try {
+
+
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    // Compare AuthToken (password) with stored Hash
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -76,11 +86,12 @@ exports.loginUser = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 3600000 // 1 hour
+      maxAge: 3600000
     });
 
     res.status(200).json({
       success: true,
+      token,
       user: {
         id: user._id,
         email: user.email,
@@ -104,15 +115,12 @@ exports.requestMagicLink = async (req, res) => {
   try {
     let user = await User.findOne({ email });
     if (!user) {
-      // We cannot create a user purely via Magic Link anymore for E2EE 
-      // because we need the KDF Salt and Validator Hash setup.
-      // Returning error for now.
       return res.status(400).json({ message: 'User not found. Please sign up to initialize encryption.' });
     }
 
     const token = crypto.randomBytes(32).toString('hex');
     user.magicLinkToken = crypto.createHash('sha256').update(token).digest('hex');
-    user.magicLinkExpires = Date.now() + 15 * 60 * 1000; // 15 mins
+    user.magicLinkExpires = Date.now() + 15 * 60 * 1000;
 
     await user.save();
 
@@ -178,26 +186,36 @@ exports.logoutUser = (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
-    const token = req.cookies.token; // Checks HttpOnly cookie
+    let token = null;
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    } else if (req.cookies.token) {
+      token = req.cookies.token;
+    }
+
     if (!token) return res.json({ isAuthenticated: false, user: null });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password');
-    if (!user) return res.json({ isAuthenticated: false, user: null });
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select('-password');
+      if (!user) return res.json({ isAuthenticated: false, user: null });
 
-    res.status(200).json({
-      isAuthenticated: true,
-      user: {
-        id: user._id,
-        email: user.email,
-        username: user.username,
-        kdfSalt: user.kdfSalt,
-        kdfIterations: user.kdfIterations,
-        validatorHash: user.validatorHash,
-        encryptedMasterKey: user.encryptedMasterKey,
-        masterKeyIV: user.masterKeyIV
-      }
-    });
+      res.status(200).json({
+        isAuthenticated: true,
+        user: {
+          id: user._id,
+          email: user.email,
+          username: user.username,
+          kdfSalt: user.kdfSalt,
+          kdfIterations: user.kdfIterations,
+          validatorHash: user.validatorHash,
+          encryptedMasterKey: user.encryptedMasterKey,
+          masterKeyIV: user.masterKeyIV
+        }
+      });
+    } catch (e) {
+      return res.json({ isAuthenticated: false, user: null });
+    }
   } catch (err) {
     res.json({ isAuthenticated: false, user: null });
   }

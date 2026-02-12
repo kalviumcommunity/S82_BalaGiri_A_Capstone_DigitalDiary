@@ -6,7 +6,7 @@ const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>; // Or a spinner
+    return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>;
   }
 
   if (!isAuthenticated) {

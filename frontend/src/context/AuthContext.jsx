@@ -9,33 +9,42 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    // MASTER KEY: Kept ONLY in memory.
-    // Derived from password on Login/Unlock. Wiped on Logout/Timeout.
     const [masterKey, setMasterKey] = useState(null);
 
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Check if user is authenticated (HTTP Only Cookie)
     const checkAuth = useCallback(async () => {
         try {
-            const res = await fetch('/api/auth/me');
+            const token = localStorage.getItem('token');
+
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const res = await fetch(`${apiUrl}/api/auth/me`, {
+                headers,
+            });
+
             if (res.ok) {
                 const data = await res.json();
                 if (data.isAuthenticated && data.user) {
                     setUser(data.user);
                     setIsAuthenticated(true);
-                    // Note: masterKey remains null after refresh until explicit unlock
                 } else {
                     setUser(null);
                     setIsAuthenticated(false);
                     setMasterKey(null);
+                    if (token) localStorage.removeItem('token');
                 }
             } else {
                 setUser(null);
                 setIsAuthenticated(false);
                 setMasterKey(null);
+                if (token) localStorage.removeItem('token');
             }
         } catch (error) {
             console.error('Auth check failed', error);
@@ -53,40 +62,54 @@ export const AuthProvider = ({ children }) => {
 
     const handleLogout = useCallback(async () => {
         try {
-            await fetch('/api/auth/logout', { method: 'POST' });
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            await fetch(`${apiUrl}/api/auth/logout`, { method: 'POST', credentials: 'include' });
         } catch (error) {
             console.error('Logout failed', error);
         }
+        localStorage.removeItem('token');
         setUser(null);
         setIsAuthenticated(false);
-        setMasterKey(null); // CRITICAL: Wipe Key
+        setMasterKey(null);
         navigate('/');
     }, [navigate]);
 
-    useIdleTimer(300000, handleLogout, isAuthenticated); // 5 mins idle
+    useIdleTimer(300000, handleLogout, isAuthenticated);
 
     const login = async (email, password) => {
         try {
-            // 1. Derive Auth Token (Split Key)
             const authToken = await deriveAuthToken(password);
 
-            // 2. Authenticate with Server
-            const res = await fetch('/api/auth/login', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const res = await fetch(`${apiUrl}/api/auth/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password: authToken }) // Send Hash, not Password
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ email, password: authToken })
             });
 
             if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.message || 'Login failed');
+                let errorMessage = 'Login failed';
+                try {
+                    const err = await res.json();
+                    errorMessage = err.message || errorMessage;
+                } catch (e) {
+                    errorMessage = res.statusText || errorMessage;
+                }
+                throw new Error(errorMessage);
             }
 
             const data = await res.json();
+
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+            }
+
             setUser(data.user);
             setIsAuthenticated(true);
 
-            // 3. Derive Master Key & Verify
             if (data.user.kdfSalt && data.user.validatorHash) {
                 await unlockFn(password, data.user);
             }
@@ -98,10 +121,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    /**
-     * Unlocks the diary by deriving the Master Key from the password.
-     * Validates against the stored Validator Hash.
-     */
+
     const unlock = async (password) => {
         if (!user) throw new Error("No user loaded");
         await unlockFn(password, user);
@@ -113,20 +133,16 @@ export const AuthProvider = ({ children }) => {
                 throw new Error("User has no encryption setup or logic is outdated.");
             }
 
-            // 1. Derive Password Key (KEK)
             const passwordKey = await derivePasswordKey(password, userData.kdfSalt);
 
-            // 2. Unwrap Master Key
             const mk = await decryptMasterKeyForHKDF(passwordKey, userData.encryptedMasterKey, userData.masterKeyIV);
 
-            // 3. Verify with Validator Hash (Zero-Knowledge Check)
             if (userData.validatorHash) {
                 const isValid = await checkValidator(userData.validatorHash, mk);
                 if (!isValid) throw new Error("Invalid password (encryption check failed)");
             }
 
             setMasterKey(mk);
-            console.log("Master Key derived and in memory.");
             return true;
         } catch (e) {
             console.error("Unlock failed", e);
@@ -146,7 +162,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         unlock,
-        isUnlocked: !!masterKey, // Convenience flag
+        isUnlocked: !!masterKey,
     }), [user, isAuthenticated, masterKey, loading, login, logout, unlock]);
 
     return (

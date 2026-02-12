@@ -9,18 +9,15 @@ const GlobalDialog = ({ isDark }) => {
     const [inputValue, setInputValue] = useState(defaultValue || '');
     const inputRef = useRef(null);
 
-    // Reset input value when dialog opens
     useEffect(() => {
         if (isOpen && type === 'prompt') {
             setInputValue(defaultValue || '');
-            // Focus input after animation
             setTimeout(() => {
                 inputRef.current?.focus();
             }, 100);
         }
     }, [isOpen, type, defaultValue]);
 
-    // Handle Keyboard Navigation
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (!isOpen) return;
@@ -36,7 +33,7 @@ const GlobalDialog = ({ isDark }) => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, inputValue]); // Depend on inputValue to ensure current state is captured
+    }, [isOpen, inputValue]);
 
     const handleConfirm = () => {
         if (type === 'prompt') {
@@ -44,7 +41,7 @@ const GlobalDialog = ({ isDark }) => {
         } else if (type === 'confirm') {
             closeDialog(true);
         } else {
-            closeDialog(true); // Alert
+            closeDialog(true);
         }
     };
 
@@ -54,11 +51,10 @@ const GlobalDialog = ({ isDark }) => {
         } else if (type === 'confirm') {
             closeDialog(false);
         } else {
-            closeDialog(true); // Alert can only be dismissed (effectively OK)
+            closeDialog(true);
         }
     };
 
-    // Theme Variables
     const overlayBg = 'bg-black/60 backdrop-blur-sm';
     const modalBg = isDark ? 'bg-[#1e293b]' : 'bg-white';
     const textColor = isDark ? 'text-white' : 'text-slate-800';
@@ -66,16 +62,14 @@ const GlobalDialog = ({ isDark }) => {
     const borderColor = isDark ? 'border-white/10' : 'border-slate-200';
     const inputBg = isDark ? 'bg-black/30' : 'bg-slate-100';
 
-    // Button Styles
     const btnPrimary = 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25';
     const btnSecondary = isDark
         ? 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200';
 
-    // Icons based on type
     const getIcon = () => {
         if (type === 'confirm') return <HelpCircle className="w-8 h-8 text-cyan-400" />;
-        if (type === 'prompt') return <CheckCircle className="w-8 h-8 text-cyan-400" />; // Or specific icon
+        if (type === 'prompt') return <CheckCircle className="w-8 h-8 text-cyan-400" />;
         return <AlertCircle className="w-8 h-8 text-cyan-400" />;
     };
 
@@ -90,7 +84,6 @@ const GlobalDialog = ({ isDark }) => {
                         transition={{ type: "spring", stiffness: 350, damping: 25 }}
                         className={`${modalBg} rounded-3xl w-full max-w-sm p-6 sm:p-8 shadow-2xl border ${borderColor} relative overflow-hidden`}
                     >
-                        {/* Decorative gradient glow */}
                         <div className={`absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none`} />
 
                         <div className="flex flex-col items-center text-center">

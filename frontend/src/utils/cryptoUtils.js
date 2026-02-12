@@ -1,21 +1,10 @@
-/**
- * Zero-Knowledge Cryptography Utilities
- * 
- * Architecture: Wrapped Key Model
- * 1. Password Key (PK) = PBKDF2(Password, UserSalt)
- * 2. Master Key (MK) = Random 256-bit Key
- * 3. Encrypted Master Key (EMK) = AES-GCM(PK, MK) -> Stored on Server
- * 4. Entry Key (EK) = HKDF(MK, EntrySalt) -> Unique per entry
- * 5. Ciphertext = AES-GCM(EK, Plaintext)
- */
-
-const PBKDF2_ITERATIONS = 310000; // OWASP recommended minimum
+const PBKDF2_ITERATIONS = 310000;
 const SALT_LENGTH = 16;
 const IV_LENGTH = 12;
 const KEY_LENGTH = 256;
 const HASH_ALGO = "SHA-256";
 
-// --- Helpers ---
+
 
 export const arrayBufferToBase64 = (buffer) => {
     let binary = '';
@@ -46,13 +35,8 @@ export const generateIV = () => {
     return arrayBufferToBase64(iv);
 };
 
-// --- Core Key Management ---
 
-/**
- * Derives the Key Encryption Key (KEK) from the user's password.
- * This key is used ONLY to wrap/unwrap the Master Key.
- * It is NEVER stored or sent to the server.
- */
+
 export const derivePasswordKey = async (password, saltBase64) => {
     const enc = new TextEncoder();
     const keyMaterial = await window.crypto.subtle.importKey(
@@ -72,37 +56,27 @@ export const derivePasswordKey = async (password, saltBase64) => {
         },
         keyMaterial,
         { name: "AES-GCM", length: KEY_LENGTH },
-        false, // Not exportable
+        false,
         ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
     );
 };
 
-/**
- * Generates a fresh random Master Key.
- * Used during Signup.
- */
 export const generateMasterKey = async () => {
     return window.crypto.subtle.generateKey(
         {
             name: "AES-GCM",
             length: KEY_LENGTH
         },
-        true, // Exportable (needed to wrap it)
+        true,
         ["encrypt", "decrypt"]
     );
 };
 
-/**
- * Encrypts (Wraps) the Master Key using the Password Key.
- * Returns { encryptedMasterKey, iv } (Base64)
- */
 export const exportAndEncryptMasterKey = async (masterKey, passwordKey) => {
     const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
 
-    // Export MK to raw bytes
     const rawMK = await window.crypto.subtle.exportKey("raw", masterKey);
 
-    // Encrypt raw MK with Password Key
     const encryptedBuffer = await window.crypto.subtle.encrypt(
         { name: "AES-GCM", iv: iv },
         passwordKey,
@@ -115,9 +89,21 @@ export const exportAndEncryptMasterKey = async (masterKey, passwordKey) => {
     };
 };
 
-/**
- * Decrypts (Unwraps) the Master Key using the Password Key.
- */
+export const encryptMasterKey = async (masterKeyRaw, passwordKey) => {
+    const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+
+    const encryptedBuffer = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        passwordKey,
+        masterKeyRaw
+    );
+
+    return {
+        encryptedMasterKey: arrayBufferToBase64(encryptedBuffer),
+        iv: arrayBufferToBase64(iv)
+    };
+};
+
 export const decryptMasterKey = async (passwordKey, encryptedMasterKeyB64, ivB64) => {
     try {
         const encryptedBuffer = base64ToArrayBuffer(encryptedMasterKeyB64);
@@ -129,13 +115,12 @@ export const decryptMasterKey = async (passwordKey, encryptedMasterKeyB64, ivB64
             encryptedBuffer
         );
 
-        // Import the raw bytes back into a CryptoKey
         return window.crypto.subtle.importKey(
             "raw",
             rawMK,
             { name: "AES-GCM", length: KEY_LENGTH },
-            false, // Not exportable after import (security best practice)
-            ["encrypt", "decrypt"] // MK is used to derive Entry Keys or encrypt data
+            false,
+            ["encrypt", "decrypt"]
         );
     } catch (e) {
         console.error("Master Key Decryption Failed", e);
@@ -168,44 +153,9 @@ export const deriveAuthToken = async (password) => {
 };
 
 
-// --- Entry Encryption (HKDF) ---
 
-/**
- * Derives a unique key for a specific entry using HKDF.
- * Context: "DiaryEntry"
- */
+
 export const deriveEntryKey = async (masterKey, entrySaltBase64) => {
-    // Note: If MasterKey is non-extractable AES-GCM, we might need to change how we use it for HKDF.
-    // WebCrypto HKDF requires the input key to be an HKDF key or raw bytes.
-    // However, we imported MK as AES-GCM. 
-    // Trick: We can import the RAW bytes of MK as an HKDF key if we had them.
-    // BUT, MK is in memory as CryptoKey.
-
-    // To support HKDF from a CryptoKey, the key must be compatible.
-    // If MK is AES-GCM, we cannot use it directly as 'key' for deriveKey(HKDF).
-    // FIX: When we unwrap MK, we should arguably import it as a key capable of derivation?
-    // OR we use the AES-GCM key to encrypt the entry directly?
-    // Req 9 says: "Unique per-entry key derived from Master Key using HKDF"
-
-    // So MK should be imported as 'HKDF' key (or 'Generic Secret') initially, 
-    // or we export it (if allowed) and re-import.
-    // To keep it clean: We will handle MK as a generic secret for HKDF purposes, 
-    // or simply import it as an HKDF key when unwrapping.
-
-    // Let's refine `decryptMasterKey`: It imports as AES-GCM. 
-    // We should probably import it as a key that can derive bits.
-
-    // actually, for HKDF, we need the key to be of algorithm 'HKDF' usually, or raw.
-    // Let's try to export (if we allowed export on unwrap) or fix unwrap.
-    // In `decryptMasterKey`, we set `extractable: false`.
-    // This is good for security but blocks us from re-purposing.
-
-    // Alternative: The "Master Key" is actually an HKDF IKM (Input Keying Material).
-    // So internal format should be "HKDF".
-
-    // Let's fix `decryptMasterKey` to import as HKDF key.
-
-    // For this Function: We assume masterKey is a CryptoKey (algorithm: HKDF).
 
     return window.crypto.subtle.deriveKey(
         {
@@ -221,10 +171,7 @@ export const deriveEntryKey = async (masterKey, entrySaltBase64) => {
     );
 };
 
-// ... Wait, we need to adjust generateMasterKey and decryptMasterKey to return HKDF compatible keys ...
-// I will override the exports below to ensure consistency.
 
-// REVISED decryptMasterKey for HKDF compatibility
 export const decryptMasterKeyForHKDF = async (passwordKey, encryptedMasterKeyB64, ivB64) => {
     const encryptedBuffer = base64ToArrayBuffer(encryptedMasterKeyB64);
     const iv = base64ToArrayBuffer(ivB64);
@@ -235,29 +182,31 @@ export const decryptMasterKeyForHKDF = async (passwordKey, encryptedMasterKeyB64
         encryptedBuffer
     );
 
-    // Import as HKDF key
     return window.crypto.subtle.importKey(
         "raw",
         rawMK,
         { name: "HKDF" },
-        false, // Not exportable
+        false,
         ["deriveKey"]
     );
 };
 
-// REVISED generateMasterKey for HKDF compatibility
 export const generateMasterKeyHKDF = async () => {
-    return window.crypto.subtle.generateKey(
-        {
-            name: "HKDF"
-        },
-        true, // Exportable (to wrap)
-        ["deriveKey"]
+    const keyMaterial = window.crypto.getRandomValues(new Uint8Array(32));
+
+    const key = await window.crypto.subtle.importKey(
+        "raw",
+        keyMaterial,
+        { name: "HKDF" },
+        false,
+        ["deriveKey", "deriveBits"]
     );
+
+    return { masterKey: key, keyMaterial };
 };
 
 
-// --- Data Encryption/Decryption ---
+
 
 export const encryptWithKey = async (content, key) => {
     const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
@@ -289,7 +238,7 @@ export const decryptWithKey = async (ciphertextB64, ivB64, key) => {
     return dec.decode(decryptedBuffer);
 };
 
-// --- File Encryption ---
+
 
 export const encryptFileWithKey = async (file, key) => {
     const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
@@ -320,16 +269,9 @@ export const decryptFileWithKey = async (encryptedBlob, ivB64, key, mimeType) =>
     return new Blob([decryptedBuffer], { type: mimeType });
 };
 
-// --- Validator (Zero-Knowledge Check) ---
+
 
 export const createValidator = async (masterKey) => {
-    // We derive a specific key for the validator to avoid using MK directly?
-    // Or just encrypt a constant with a random salt HKDF?
-    // Let's use HKDF with salt "VALIDATOR_SALT" (or random)
-
-    // Actually, we should store a "validator" field:
-    // validator = Encrypt(Key=HKDF(MK, Salt), Data="VALID")
-
     const validatorSalt = generateSalt();
     const validatorKey = await deriveEntryKey(masterKey, validatorSalt);
     const { ciphertext, iv } = await encryptWithKey("VALID_PASSWORD_CHECK", validatorKey);
@@ -351,31 +293,20 @@ export const checkValidator = async (validatorStr, masterKey) => {
     }
 };
 
-// --- Payload Bundle Encryption (Zero-Knowledge) ---
 
-/**
- * Encrypts an entire entry object (metadata + content) into a single blob.
- * Returns { payload, iv }
- */
+
 export const encryptEntryPayload = async (entryData, key) => {
-    // 1. Convert object to JSON string
     const jsonString = JSON.stringify(entryData);
 
-    // 2. Encrypt the JSON string
     const { ciphertext, iv } = await encryptWithKey(jsonString, key);
 
     return { payload: ciphertext, iv };
 };
 
-/**
- * Decrypts a payload blob back into the entry object.
- */
 export const decryptEntryPayload = async (payload, iv, key) => {
     try {
-        // 1. Decrypt into JSON string
         const jsonString = await decryptWithKey(payload, iv, key);
 
-        // 2. Parse JSON
         return JSON.parse(jsonString);
     } catch (e) {
         console.error("Payload decryption failed", e);

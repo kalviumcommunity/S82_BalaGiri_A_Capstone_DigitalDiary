@@ -24,12 +24,11 @@ router.post(
   createEntry
 );
 
-// const { decrypt } = require('../utils/encryption'); // REMOVED
+
 
 router.get('/latest', authenticateToken, async (req, res) => {
   try {
     const latest = await DiaryEntry.find({ user: req.user.id }).sort({ date: -1 }).limit(3);
-    // Return raw encrypted data
     res.status(200).json(latest);
   } catch (err) {
     console.error('Fetch latest entries error:', err);

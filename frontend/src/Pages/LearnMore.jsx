@@ -15,14 +15,14 @@ import {
 } from 'lucide-react';
 
 function LearnMore({ currentTheme, isDark }) {
-  // Use a fallback theme if currentTheme is missing to prevent crashes
+
   const theme = currentTheme || {
     background: 'from-gray-900 via-gray-800 to-gray-900',
     text: 'text-white',
     subtext: 'text-gray-300'
   };
 
-  // Optimization: Fallback color to prevent white flash on fast scroll
+
   const fallbackBg = isDark ? 'bg-[#0B1026]' : 'bg-[#B8D9F2]';
 
   const containerVariants = {
@@ -107,7 +107,7 @@ function LearnMore({ currentTheme, isDark }) {
   return (
     <div className={`min-h-screen relative overflow-hidden ${fallbackBg} bg-gradient-to-br ${theme.background} pt-36 pb-12 px-4 sm:px-6 lg:px-8`}>
 
-      {/* Ambient Background Elements */}
+
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           style={{ willChange: 'transform' }}
@@ -129,7 +129,7 @@ function LearnMore({ currentTheme, isDark }) {
         animate="visible"
         className="relative z-10 max-w-6xl mx-auto space-y-20"
       >
-        {/* Hero Section */}
+
         <motion.div variants={itemVariants} className="text-center space-y-6">
           <motion.div
             className={`inline-flex items-center justify-center p-4 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl mb-6 ${theme.text}`}
@@ -150,7 +150,7 @@ function LearnMore({ currentTheme, isDark }) {
           </p>
         </motion.div>
 
-        {/* Timeline Features Section */}
+
         <motion.div variants={itemVariants} className="relative">
           <div className="flex items-center justify-center gap-3 mb-20">
             <div className={`h-px w-12 ${isDark ? 'bg-white/20' : 'bg-black/10'}`}></div>
@@ -159,7 +159,7 @@ function LearnMore({ currentTheme, isDark }) {
           </div>
 
           <div className="relative max-w-5xl mx-auto">
-            {/* Central Line (Desktop center, Mobile left) */}
+
             <div className={`absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 bg-gradient-to-b ${isDark ? 'from-transparent via-purple-500/50 to-transparent' : 'from-transparent via-blue-400/50 to-transparent'}`} />
 
             {features.map((feature, index) => (
@@ -172,15 +172,15 @@ function LearnMore({ currentTheme, isDark }) {
                 className={`relative flex items-center mb-16 md:mb-24 ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
                   }`}
               >
-                {/* Desktop Spacer */}
+
                 <div className="hidden md:block w-5/12" />
 
-                {/* Center Dot */}
+
                 <div className="absolute left-4 md:left-1/2 -translate-x-1/2 flex items-center justify-center w-8 h-8 md:w-12 md:h-12 rounded-full border-4 border-white/10 backdrop-blur-md z-10 shadow-lg bg-gradient-to-br from-white/20 to-white/5">
                   <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full ${feature.bg} shadow-[0_0_10px_currentColor]`} />
                 </div>
 
-                {/* Content Card */}
+
                 <div className="pl-16 md:pl-0 w-full md:w-5/12">
                   <div className={`p-6 md:p-8 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl hover:border-white/20 hover:bg-white/10 transition-all duration-300 group`}>
                     <div className={`p-3 rounded-xl w-fit mb-4 ${feature.bg} bg-opacity-10 ${feature.text}  group-hover:scale-110 transition-transform duration-300`}>
@@ -199,17 +199,17 @@ function LearnMore({ currentTheme, isDark }) {
           </div>
         </motion.div>
 
-        {/* Tech Stack Section */}
+
         <motion.div variants={itemVariants} className="relative rounded-[2.5rem] p-10 overflow-hidden border border-white/10 shadow-2xl">
           <div className={`absolute inset-0 bg-white/5 backdrop-blur-md`}></div>
-          {/* Decorative corner blob */}
+
           <div className={`absolute -top-40 -right-40 w-80 h-80 rounded-full blur-[80px] opacity-30 ${isDark ? 'bg-pink-600' : 'bg-pink-300'} pointer-events-none`}></div>
 
           <div className="relative z-10">
             <h2 className={`text-3xl font-bold text-center mb-16 ${theme.text}`}>Built With The Best</h2>
 
             <div className="grid md:grid-cols-2 gap-16">
-              {/* Frontend Column */}
+
               <div className="space-y-8">
                 <h3 className={`text-xl font-bold uppercase tracking-wider text-center ${theme.text} border-b border-white/10 pb-4`}>
                   Frontend Ecosystem
@@ -230,7 +230,7 @@ function LearnMore({ currentTheme, isDark }) {
                 </div>
               </div>
 
-              {/* Backend Column */}
+
               <div className="space-y-8">
                 <h3 className={`text-xl font-bold uppercase tracking-wider text-center ${theme.text} border-b border-white/10 pb-4`}>
                   Backend Architecture

@@ -26,7 +26,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const navigate = useNavigate();
   const { alert, confirm } = useDialog();
-  const { logout, user, masterKey, unlock } = useAuth(); // Use masterKey & unlock
+  const { logout, user, masterKey, unlock } = useAuth();
 
   const [decryptedEntries, setDecryptedEntries] = useState([]);
   const [isUnlocking, setIsUnlocking] = useState(false);
@@ -51,15 +51,16 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       const newMediaUrls = { photos: [], audio: null };
 
       try {
-        // --- Photos ---
         if (viewEntry.photos && viewEntry.photos.length > 0) {
           newMediaUrls.photos = await Promise.all(viewEntry.photos.map(async (photo, idx) => {
             try {
-              // Construct path from ID if missing (ZK Schema)
               const filename = photo.id || photo.path?.split('/').pop();
               if (!filename) return null;
 
-              const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/file/photos/${filename}`);
+              const token = localStorage.getItem('token');
+              const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/file/photos/${filename}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
               if (!res.ok) throw new Error('Fetch failed');
 
               const encryptedBlob = await res.blob();
@@ -82,12 +83,14 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
           }));
         }
 
-        // --- Audio ---
         if (viewEntry.audio && typeof viewEntry.audio === 'object') {
           try {
             const filename = viewEntry.audio.id || viewEntry.audio.path?.split('/').pop();
             if (filename) {
-              const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/file/audio/${filename}`);
+              const token = localStorage.getItem('token');
+              const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/file/audio/${filename}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
               if (!res.ok) throw new Error('Fetch failed');
 
               const encryptedBlob = await res.blob();
@@ -139,13 +142,25 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
 
   const fetchEntries = useCallback(async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/all`);
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/all`, {
+        headers,
+      });
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        if (res.status === 401) throw new Error('Session expired');
+        throw new Error(`Server returned non-JSON response: ${res.statusText}`);
+      }
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to fetch entries');
       setEntries(data || []);
     } catch (err) {
       console.error('Error fetching entries:', err);
-      if (err.message === 'Session expired') {
+      if (err.message === 'Session expired' || err.message === 'No token provided' || err.message === 'Invalid token') {
         await alert('Session expired. Please login again.');
         logout();
       }
@@ -160,16 +175,30 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     if (!await confirm('Are you sure you want to delete this entry?')) return;
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/diary/delete/${id}`, {
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/delete/${id}`, {
         method: 'DELETE',
+        headers,
       });
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        if (res.status === 401) throw new Error('Session expired');
+        throw new Error(`Server returned non-JSON response`);
+      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       fetchEntries();
     } catch (error) {
       console.error('Delete failed:', error);
-      await alert('Failed to delete entry.');
+      if (error.message === 'Session expired') {
+        logout();
+      } else {
+        await alert('Failed to delete entry.');
+      }
     }
   }, [confirm, alert, logout, fetchEntries]);
 
@@ -196,7 +225,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     }
 
     return matchesSearch && matchesMood && matchesDate;
-  }), [entries, searchTerm, selectedMood, selectedDate, decryptedEntries]); // Add decryptedEntries dep
+  }), [entries, searchTerm, selectedMood, selectedDate, decryptedEntries]);
 
   const groupedEntries = useMemo(() => filteredEntries.reduce((acc, entry) => {
     const date = new Date(entry.date);
@@ -206,7 +235,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     return acc;
   }, {}), [filteredEntries]);
 
-  // FIX: Use decryptedEntries for calendar dots
   const entryDates = useMemo(() => new Set(decryptedEntries.map(e => e.date)), [decryptedEntries]);
 
   const tileContent = useCallback(({ date, view }) => {
@@ -227,7 +255,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     setIsUnlocking(true);
     setUnlockError(null);
     try {
-      // Use AuthContext unlock which checks Master Key against Validator
       await unlock(password);
     } catch (err) {
       console.error(err);
@@ -244,17 +271,13 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       const entryKey = await deriveEntryKey(masterKey, entry.entrySalt);
       const crypto = await import('../utils/cryptoUtils');
 
-      // Check for New ZK Encrypted Payload
       if (entry.payload) {
         const decryptedData = await crypto.decryptEntryPayload(entry.payload, entry.iv, entryKey);
-        return { ...entry, ...decryptedData }; // Merge decrypted {title, content...} into entry
+        return { ...entry, ...decryptedData };
       }
 
-      // --- Legacy Support (Old Schema) ---
-      // 2. Decrypt Content
       const decryptedContent = await decryptWithKey(entry.content, entry.iv, entryKey);
 
-      // 3. Decrypt Title
       let decryptedTitle = entry.title;
       if (entry.title && entry.title.includes(':')) {
         const [tIV, tCipher] = entry.title.split(':');
@@ -263,7 +286,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
         } catch (e) { }
       }
 
-      // 4. Decrypt Mood
       let decryptedMood = entry.mood;
       if (entry.mood && entry.mood.includes(':')) {
         const [mIV, mCipher] = entry.mood.split(':');
@@ -283,13 +305,12 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     if (masterKey && entries.length > 0) {
       setIsDecrypting(true);
       Promise.all(entries.map(processEntry)).then(decrypted => {
-        // Sort explicitly by date (descending) after decryption
         const sorted = decrypted.sort((a, b) => new Date(b.date) - new Date(a.date));
         setDecryptedEntries(sorted);
         setIsDecrypting(false);
       });
     } else {
-      setDecryptedEntries(entries); // Show locked/encrypted state
+      setDecryptedEntries(entries);
     }
   }, [entries, masterKey, processEntry]);
 
@@ -302,8 +323,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
           isUnlocking={isUnlocking}
         />
       )}
-
-      {/* ... (Rest of UI is React standard, keeping mostly same structure) ... */}
 
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 md:gap-0">
         <div className="flex items-center gap-4">
@@ -345,7 +364,6 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
             <LogOut className="w-5 h-5" />
           </button>
 
-          {/* Calendar Popover */}
           {showCalendar && (
             <div className="absolute top-16 right-0 p-4 z-50 animate-in fade-in zoom-in duration-200">
               <div className={`${isDarkMode ? 'bg-[#1e293b]' : 'bg-white'} rounded-2xl shadow-2xl p-4 border ${borderColor} w-[350px]`}>

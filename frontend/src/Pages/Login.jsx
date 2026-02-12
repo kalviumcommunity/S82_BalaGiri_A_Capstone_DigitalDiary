@@ -21,7 +21,6 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
   const handleLogin = async () => {
     try {
       await login(email, password);
-      // login in AuthContext handles fetching user and setting private key if possible (autosync)
 
       navigate("/diary");
       if (onLoginSuccess) {
@@ -49,11 +48,17 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
       return;
     }
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/magic-link`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/magic-link`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
       });
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server error: received non-JSON response");
+      }
+
       if (res.ok) {
         await alert("Magic link sent! Check your email.");
       } else {

@@ -21,7 +21,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isEncrypting, setIsEncrypting] = useState(false);
-  const { user, masterKey } = useAuth(); // Use masterKey from context
+  const { user, masterKey } = useAuth();
 
   const isDark = currentTheme?.text?.includes('E1E7FF');
   const textColor = isDark ? 'text-white' : 'text-slate-800';
@@ -83,26 +83,21 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
 
       setIsEncrypting(true);
 
-      // --- ZERO-KNOWLEDGE PAYLOAD GENERATION ---
-
-      // 1. Generate Salt & Key
       const entrySalt = generateSalt();
       const entryKey = await deriveEntryKey(masterKey, entrySalt);
 
-      // 2. Prepare File Metadata & Blobs
       const photosMeta = [];
       const encryptedPhotoBlobs = [];
 
       await Promise.all(photos.map(async (p) => {
         const { encryptedBlob, iv } = await encryptFileWithKey(p, entryKey);
-        // Generate a random ID for the file storage (hiding original name from server)
         const fileId = generateSalt().replace(/[^a-zA-Z0-9]/g, '') + ".enc";
 
         photosMeta.push({
           id: fileId,
           iv: iv,
           mimeType: p.type,
-          originalName: `photo_${photosMeta.length}` // Minimal leak
+          originalName: `photo_${photosMeta.length}`
         });
         encryptedPhotoBlobs.push({ blob: encryptedBlob, filename: fileId });
       }));
@@ -123,29 +118,23 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
         encryptedAudioBlob = { blob: encryptedBlob, filename: fileId };
       }
 
-      // 3. Construct the Secret Payload
-      // This object contains EVERYTHING. The server sees NONE of this.
       const entryData = {
         title: title,
         content: content,
         mood: mood,
-        date: new Date().toISOString().split('T')[0], // User-facing date
+        date: new Date().toISOString().split('T')[0],
         photos: photosMeta,
         audio: audioMeta,
-        // We can add arbitrary tags, location, etc. here freely
       };
 
-      // 4. Encrypt the Payload
       const { payload: encryptedPayload, iv: payloadIV } = await import('../utils/cryptoUtils').then(m => m.encryptEntryPayload(entryData, entryKey));
 
-      // 5. Construct FormData
       const formData = new FormData();
       formData.append('payload', encryptedPayload);
       formData.append('iv', payloadIV);
       formData.append('entrySalt', entrySalt);
       formData.append('encryptionVersion', '2');
 
-      // Append Files with their random IDs
       encryptedPhotoBlobs.forEach(({ blob, filename }) => {
         formData.append('photos', blob, filename);
       });
@@ -155,15 +144,27 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
       }
 
       const url = entry
-        ? `${import.meta.env.VITE_BACKEND_URL}/api/diary/update/${entry._id}`
-        : `${import.meta.env.VITE_BACKEND_URL}/api/diary/new`;
+        ? `${import.meta.env.VITE_API_URL}/api/diary/update/${entry._id}`
+        : `${import.meta.env.VITE_API_URL}/api/diary/new`;
 
       const method = entry ? 'PUT' : 'POST';
 
+      const token = localStorage.getItem('token');
+      const headers = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch(url, {
         method,
+        headers: {
+          ...headers
+        },
         body: formData,
       });
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server error: received non-JSON response");
+      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to save entry');

@@ -1,25 +1,12 @@
-/**
- * Web Crypto API Utilities for Zero-Knowledge End-to-End Encryption
- * 
- * Architecture:
- * 1. Master Key (MK) = PBKDF2(Password, UserSalt, 600k iter)
- * 2. Auth Token = HMAC(Password, "AUTH_PURPOSE") -> Sent to server
- * 3. Entry Key (EK) = HKDF(MK, EntrySalt, "DiaryEntry-AES-GCM-v1")
- * 4. Content Encryption = AES-GCM(EK, Plaintext)
- * 
- * SECURITY NOTE:
- * The Master Key MUST NEVER be sent to the server or stored in localStorage.
- * It exists only in memory (Closure/Context) and is derived on demand.
- */
 
-// Configuration
-const PBKDF2_ITERATIONS = 600000; // High iteration count for security
+
+const PBKDF2_ITERATIONS = 600000;
 const SALT_LENGTH = 16;
 const IV_LENGTH = 12; // 96 bits for AES-GCM
 const MASTER_KEY_LENGTH = 256;
 const HASH_ALGO = "SHA-256";
 
-// ... Base64 Helpers ...
+
 export const arrayBufferToBase64 = (buffer) => {
     let binary = '';
     const bytes = new Uint8Array(buffer);
@@ -45,7 +32,7 @@ export const generateSalt = () => {
     return arrayBufferToBase64(salt);
 };
 
-// ... Key Derivation ...
+
 
 export const deriveMasterKey = async (password, userSaltBase64) => {
     const enc = new TextEncoder();
@@ -111,12 +98,8 @@ export const deriveEntryKey = async (masterKey, entrySaltBase64) => {
     );
 };
 
-// ... Encryption Primitives ...
 
-/**
- * Encrypts generic string content with a given Key.
- * Returns { ciphertext, iv } (Base64)
- */
+
 export const encryptWithKey = async (content, key) => {
     const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
     const enc = new TextEncoder();
@@ -133,9 +116,6 @@ export const encryptWithKey = async (content, key) => {
     };
 };
 
-/**
- * Decrypts generic string content with a given Key and IV.
- */
 export const decryptWithKey = async (ciphertextB64, ivB64, key) => {
     const iv = base64ToArrayBuffer(ivB64);
     const ciphertext = base64ToArrayBuffer(ciphertextB64);
@@ -150,7 +130,7 @@ export const decryptWithKey = async (ciphertextB64, ivB64, key) => {
     return dec.decode(decryptedBuffer);
 };
 
-// ... Higher Level Helpers (Optional, but kept for compatibility/convenience) ...
+
 
 export const encryptEntry = async (content, masterKey) => {
     const entrySalt = generateSalt();
@@ -186,11 +166,8 @@ export const checkValidator = async (validatorStr, masterKey) => {
     }
 };
 
-// ... File Encryption ...
 
-/**
- * Encrypts a File object (Blob) with a SPECIFIC key (used for multi-file with same entry key)
- */
+
 export const encryptFileWithKey = async (file, key) => {
     const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
     const fileBuffer = await file.arrayBuffer();
@@ -207,10 +184,6 @@ export const encryptFileWithKey = async (file, key) => {
     };
 };
 
-/**
- * Legacy wrapper: generates new salt per file. 
- * Use encryptFileWithKey if sharing salt.
- */
 export const encryptFile = async (file, masterKey) => {
     const entrySalt = generateSalt();
     const entryKey = await deriveEntryKey(masterKey, entrySalt);

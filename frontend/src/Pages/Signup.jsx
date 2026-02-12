@@ -4,7 +4,7 @@ import { motion, useAnimation } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import FailureAnimation from '../components/FailureAnimation';
 import { useAuth } from '../context/AuthContext';
-import { generateMasterKeyHKDF, derivePasswordKey, exportAndEncryptMasterKey, deriveAuthToken, createValidator, generateSalt } from '../utils/cryptoUtils';
+import { generateMasterKeyHKDF, derivePasswordKey, encryptMasterKey, deriveAuthToken, createValidator, generateSalt } from '../utils/cryptoUtils';
 
 const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }) => {
   const [username, setUsername] = useState("");
@@ -16,7 +16,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
   const navigate = useNavigate();
 
   const controls = useAnimation();
-  const { login } = useAuth(); // No setPrivateKey anymore
+  const { login } = useAuth();
 
   const handleRegister = async () => {
     try {
@@ -27,28 +27,20 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
 
       setIsGeneratingKeys(true);
 
-      // --- ZERO-KNOWLEDGE KEY GENERATION (Wrapped Key Arch) ---
+      setIsGeneratingKeys(true);
 
-      // 1. Generate User Salt (Public, stored on server)
       const kdfSalt = generateSalt();
-
-      // 2. Derive Password Key (KEK) - Used ONLY to wrap Master Key
       const passwordKey = await derivePasswordKey(password, kdfSalt);
-
-      // 3. Generate Master Key (Random, HKDF-compatible)
-      const masterKey = await generateMasterKeyHKDF();
-
-      // 4. Wrap (Encrypt) Master Key
-      const { encryptedMasterKey, iv: masterKeyIV } = await exportAndEncryptMasterKey(masterKey, passwordKey);
-
-      // 5. Create Validator Hash (for ZK Verification)
+      const { masterKey, keyMaterial } = await generateMasterKeyHKDF();
+      const { encryptedMasterKey, iv: masterKeyIV } = await encryptMasterKey(keyMaterial, passwordKey);
       const validatorHash = await createValidator(masterKey);
-
-      // 6. Derive Auth Token (Server Password)
       const authToken = await deriveAuthToken(password);
+      console.log("Signup (Frontend): Derived AuthToken length:", authToken.length);
+      console.log("Signup (Frontend): Derived AuthToken preview:", authToken.substring(0, 15) + "...");
 
-      // 7. Send to Backend
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/signup`, {
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const res = await fetch(`${apiUrl}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -66,17 +58,13 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       setIsGeneratingKeys(false);
 
       if (res.ok) {
-        // Log in automatically. 
-        // We pass the ORIGINAL password because AuthContext needs it to:
-        // A) Derive AuthToken for API
-        // B) Derive MasterKey for Memory
         await login(email, password);
 
         navigate("/diary");
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
-          onClose(); // Close modal if used as modal
+          onClose();
         }
       } else {
         controls.start({

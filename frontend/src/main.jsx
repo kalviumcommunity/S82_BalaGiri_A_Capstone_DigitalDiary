@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { DialogProvider } from './context/DialogContext';
 import { AuthProvider } from './context/AuthContext';
-import './index.css'; // if you have Tailwind or other CSS
+import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

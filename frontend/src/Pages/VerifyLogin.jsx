@@ -17,11 +17,16 @@ const VerifyLogin = () => {
 
         const verify = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/verify-link`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-link`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token })
                 });
+
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Server error: received non-JSON response");
+                }
 
                 const data = await res.json();
                 if (res.ok) {
