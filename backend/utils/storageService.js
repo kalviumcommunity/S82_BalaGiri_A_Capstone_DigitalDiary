@@ -4,8 +4,6 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
-const path = require('path');
-
 const hasCloudinaryKeys = process.env.CLOUDINARY_CLOUD_NAME &&
     process.env.CLOUDINARY_API_KEY &&
     process.env.CLOUDINARY_API_SECRET;
@@ -16,8 +14,6 @@ if (hasCloudinaryKeys) {
         api_key: process.env.CLOUDINARY_API_KEY,
         api_secret: process.env.CLOUDINARY_API_SECRET,
     });
-}
-
 }
 
 const ensureDirExists = (dir) => {
@@ -42,8 +38,6 @@ const localStorageEngine = multer.diskStorage({
     }
 });
 
-});
-
 const cloudinaryStorageEngine = hasCloudinaryKeys ? new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
@@ -64,8 +58,6 @@ const cloudinaryStorageEngine = hasCloudinaryKeys ? new CloudinaryStorage({
             public_id: file.fieldname + '-' + Date.now(),
         };
     },
-}) : null;
-
 }) : null;
 
 module.exports = {

@@ -43,7 +43,7 @@ function App() {
   const [showSignup, setShowSignup] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isUnlocked } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -51,7 +51,15 @@ function App() {
     setSuccessMessage(message);
     setShowLogin(false);
     setShowSignup(false);
+    // Clear state so refresh doesn't re-open
+    window.history.replaceState({}, document.title);
   };
+
+  useEffect(() => {
+    if (location.state?.openLogin) {
+      setShowLogin(true);
+    }
+  }, [location.state]);
 
   const currentTheme = isDark ? themes.dark : themes.light;
   const particles = React.useMemo(() => [...Array(30)].map((_, i) => ({
@@ -212,7 +220,7 @@ function App() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => isAuthenticated ? navigate('/diary') : setShowLogin(true)}
+                  onClick={() => (isAuthenticated && isUnlocked) ? navigate('/diary') : setShowLogin(true)}
                   className={`${currentTheme.button} px-8 py-3 sm:px-10 sm:py-4 rounded-2xl font-bold text-base sm:text-lg transition-all flex items-center gap-3 backdrop-blur-xl group relative overflow-hidden w-full sm:w-auto justify-center`}
                 >
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
