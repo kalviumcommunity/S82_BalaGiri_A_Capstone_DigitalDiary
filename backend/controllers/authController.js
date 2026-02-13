@@ -186,12 +186,8 @@ exports.logoutUser = (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
-    let token = null;
-    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
-      token = req.headers.authorization.split(" ")[1];
-    } else if (req.cookies.token) {
-      token = req.cookies.token;
-    }
+    const authHeader = req.header("Authorization");
+    const token = authHeader && authHeader.split(" ")[1];
 
     if (!token) return res.json({ isAuthenticated: false, user: null });
 
@@ -214,9 +210,11 @@ exports.getMe = async (req, res) => {
         }
       });
     } catch (e) {
+      console.error("[Auth] getMe token verification failed:", e.message);
       return res.json({ isAuthenticated: false, user: null });
     }
   } catch (err) {
+    console.error("[Auth] getMe error:", err);
     res.json({ isAuthenticated: false, user: null });
   }
 };

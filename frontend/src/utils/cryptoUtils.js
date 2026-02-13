@@ -128,12 +128,10 @@ export const decryptMasterKey = async (passwordKey, encryptedMasterKeyB64, ivB64
     }
 };
 
-/**
- * Derives the Auth Token from the password.
- * This is a separate hash used ONLY for authentication with the backend.
- * Ensures the backend never sees the password used for encryption.
- */
-export const deriveAuthToken = async (password) => {
+// Derives the Auth Token from the password.
+// This is a separate hash used ONLY for authentication with the backend.
+// Ensures the backend never sees the password used for encryption.
+export const deriveEncryptionKey = async (password) => {
     const enc = new TextEncoder();
     const key = await window.crypto.subtle.importKey(
         "raw",

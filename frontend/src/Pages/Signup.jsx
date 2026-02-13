@@ -4,7 +4,7 @@ import { motion, useAnimation } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import FailureAnimation from '../components/FailureAnimation';
 import { useAuth } from '../context/AuthContext';
-import { generateMasterKeyHKDF, derivePasswordKey, encryptMasterKey, deriveAuthToken, createValidator, generateSalt } from '../utils/cryptoUtils';
+import { generateMasterKeyHKDF, derivePasswordKey, encryptMasterKey, deriveEncryptionKey, createValidator, generateSalt } from '../utils/cryptoUtils';
 
 const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }) => {
   const [username, setUsername] = useState("");
@@ -34,7 +34,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       const { masterKey, keyMaterial } = await generateMasterKeyHKDF();
       const { encryptedMasterKey, iv: masterKeyIV } = await encryptMasterKey(keyMaterial, passwordKey);
       const validatorHash = await createValidator(masterKey);
-      const authToken = await deriveAuthToken(password);
+      const authToken = await deriveEncryptionKey(password);
       console.log("Signup (Frontend): Derived AuthToken length:", authToken.length);
       console.log("Signup (Frontend): Derived AuthToken preview:", authToken.substring(0, 15) + "...");
 

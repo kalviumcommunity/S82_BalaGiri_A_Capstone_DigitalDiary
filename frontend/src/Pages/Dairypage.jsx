@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 import CalendarView from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import '../customCalendar.css';
-import UnlockModal from '../components/UnlockModal';
 import {
   deriveEntryKey,
   decryptWithKey,
@@ -26,11 +25,16 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const navigate = useNavigate();
   const { alert, confirm } = useDialog();
-  const { logout, user, masterKey, unlock } = useAuth();
+  const { logout, user, encryptionKey, unlock, token, isAuthenticated, loading } = useAuth();
+
+  // Protect the route
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/');
+    }
+  }, [loading, isAuthenticated, navigate]);
 
   const [decryptedEntries, setDecryptedEntries] = useState([]);
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState(null);
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [mediaUrls, setMediaUrls] = useState({ photos: [], audio: null });
   const [loadingMedia, setLoadingMedia] = useState(false);
@@ -45,7 +49,11 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     const urlsToRevoke = [];
 
     const decryptMedia = async () => {
-      if (!masterKey) return;
+      if (!encryptionKey) return;
+
+      const storedToken = localStorage.getItem('token');
+      // Ensure we have a valid token before trying to fetch media
+      if (!storedToken) return;
 
       setLoadingMedia(true);
       const newMediaUrls = { photos: [], audio: null };
@@ -57,14 +65,13 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
               const filename = photo.id || photo.path?.split('/').pop();
               if (!filename) return null;
 
-              const token = localStorage.getItem('token');
               const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/file/photos/${filename}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 'Authorization': `Bearer ${storedToken}` }
               });
               if (!res.ok) throw new Error('Fetch failed');
 
               const encryptedBlob = await res.blob();
-              const entryKey = await deriveEntryKey(masterKey, viewEntry.entrySalt);
+              const entryKey = await deriveEntryKey(encryptionKey, viewEntry.entrySalt);
 
               const decryptedBlob = await decryptFileWithKey(
                 encryptedBlob,
@@ -87,14 +94,13 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
           try {
             const filename = viewEntry.audio.id || viewEntry.audio.path?.split('/').pop();
             if (filename) {
-              const token = localStorage.getItem('token');
               const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/file/audio/${filename}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 'Authorization': `Bearer ${storedToken}` }
               });
               if (!res.ok) throw new Error('Fetch failed');
 
               const encryptedBlob = await res.blob();
-              const entryKey = await deriveEntryKey(masterKey, viewEntry.entrySalt);
+              const entryKey = await deriveEntryKey(encryptionKey, viewEntry.entrySalt);
 
               const decryptedBlob = await decryptFileWithKey(
                 encryptedBlob,
@@ -131,7 +137,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       isMounted = false;
       urlsToRevoke.forEach(u => URL.revokeObjectURL(u));
     };
-  }, [viewEntry, masterKey]);
+  }, [viewEntry, encryptionKey, token]); // Updated dep
 
   const isDarkMode = isDark !== undefined ? isDark : currentTheme?.text?.includes('E1E7FF');
   const text = isDarkMode ? 'text-white' : 'text-slate-800';
@@ -142,8 +148,13 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
 
   const fetchEntries = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+      const authToken = localStorage.getItem('token');
+      if (!authToken) {
+        // Silent return if no token (user might be logging out or not logged in yet)
+        return;
+      }
+
+      const headers = { 'Authorization': `Bearer ${authToken}` };
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/all`, {
         headers,
@@ -151,7 +162,12 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
 
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        if (res.status === 401) throw new Error('Session expired');
+        // If 401, mostly session expired.
+        if (res.status === 401) {
+          console.warn("Session expired or invalid token.");
+          logout();
+          return;
+        }
         throw new Error(`Server returned non-JSON response: ${res.statusText}`);
       }
 
@@ -160,9 +176,12 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       setEntries(data || []);
     } catch (err) {
       console.error('Error fetching entries:', err);
-      if (err.message === 'Session expired' || err.message === 'No token provided' || err.message === 'Invalid token') {
-        await alert('Session expired. Please login again.');
-        logout();
+      // Only logout if we had a token but it failed validation
+      if (localStorage.getItem('token')) {
+        if (err.message === 'Session expired' || err.message === 'No token provided' || err.message === 'Invalid token') {
+          await alert('Session expired. Please login again.');
+          logout();
+        }
       }
     }
   }, [logout, alert]);
@@ -175,8 +194,8 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     if (!await confirm('Are you sure you want to delete this entry?')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+      const authToken = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${authToken}` };
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diary/delete/${id}`, {
         method: 'DELETE',
@@ -251,24 +270,13 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     }
   };
 
-  const handleUnlock = async (password) => {
-    setIsUnlocking(true);
-    setUnlockError(null);
-    try {
-      await unlock(password);
-    } catch (err) {
-      console.error(err);
-      setUnlockError("Incorrect password.");
-    } finally {
-      setIsUnlocking(false);
-    }
-  };
+
 
   const processEntry = useCallback(async (entry) => {
     if (!entry.entrySalt || (!entry.iv && !entry.content)) return entry;
 
     try {
-      const entryKey = await deriveEntryKey(masterKey, entry.entrySalt);
+      const entryKey = await deriveEntryKey(encryptionKey, entry.entrySalt); // Updated
       const crypto = await import('../utils/cryptoUtils');
 
       if (entry.payload) {
@@ -299,10 +307,10 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       console.error("Failed to decrypt entry:", entry._id, err);
       return { ...entry, content: "⚠️ Decryption Failed", title: "Error" };
     }
-  }, [masterKey]);
+  }, [encryptionKey]); // Updated dep
 
   useEffect(() => {
-    if (masterKey && entries.length > 0) {
+    if (encryptionKey && entries.length > 0) { // Updated check
       setIsDecrypting(true);
       Promise.all(entries.map(processEntry)).then(decrypted => {
         const sorted = decrypted.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -312,17 +320,11 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     } else {
       setDecryptedEntries(entries);
     }
-  }, [entries, masterKey, processEntry]);
+  }, [entries, encryptionKey, processEntry]); // Updated dep
 
   return (
     <div className={`pt-20 sm:pt-24 px-4 md:px-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-[#4E71FF]/0' : ''}`}>
-      {!masterKey && (
-        <UnlockModal
-          onUnlock={handleUnlock}
-          error={unlockError}
-          isUnlocking={isUnlocking}
-        />
-      )}
+
 
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 md:gap-0">
         <div className="flex items-center gap-4">

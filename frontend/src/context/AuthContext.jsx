@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import useIdleTimer from '../hooks/useIdleTimer';
-import { derivePasswordKey, decryptMasterKeyForHKDF, deriveAuthToken, checkValidator } from '../utils/cryptoUtils';
+import { derivePasswordKey, decryptMasterKeyForHKDF, deriveEncryptionKey, checkValidator } from '../utils/cryptoUtils';
+
 
 const AuthContext = createContext(null);
 
@@ -9,7 +9,17 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    const [masterKey, setMasterKey] = useState(null);
+    // STRICT SEPARATION:
+    // token = JWT for Backend Auth (stored in localStorage)
+    // encryptionKey = Derived Key for Decryption (stored in MEMORY ONLY)
+    const [token, setToken] = useState(() => localStorage.getItem('token'));
+    const [encryptionKey, setEncryptionKey] = useState(null);
+
+    // Debug logs
+    useEffect(() => {
+        console.log("AuthContext token state:", token);
+        console.log("localStorage token:", localStorage.getItem("token"));
+    }, [token]);
 
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -17,12 +27,27 @@ export const AuthProvider = ({ children }) => {
 
     const checkAuth = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
+            const storedToken = localStorage.getItem('token');
 
-            const headers = {};
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
+            if (!storedToken) {
+                setToken(null);
+                setUser(null);
+                setIsAuthenticated(false);
+                setEncryptionKey(null);
+                setLoading(false);
+                return;
             }
+
+            // Basic format check (JWT has 3 parts)
+            if (storedToken.split('.').length !== 3) {
+                console.error("[Auth] Malformed token found, clearing.");
+                logout();
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${storedToken}`
+            };
 
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             const res = await fetch(`${apiUrl}/api/auth/me`, {
@@ -34,23 +59,35 @@ export const AuthProvider = ({ children }) => {
                 if (data.isAuthenticated && data.user) {
                     setUser(data.user);
                     setIsAuthenticated(true);
+                    // Ensure state matches storage
+                    setToken(storedToken);
                 } else {
-                    setUser(null);
-                    setIsAuthenticated(false);
-                    setMasterKey(null);
-                    if (token) localStorage.removeItem('token');
+                    // Logic: If server says not authenticated effectively (e.g. valid token structure but session invalid?)
+                    // But usually 401 is thrown. If 200 OK but !isAuthenticated, it's weird, but we should logout.
+                    logout();
                 }
             } else {
-                setUser(null);
-                setIsAuthenticated(false);
-                setMasterKey(null);
-                if (token) localStorage.removeItem('token');
+                // ONLY logout if explicitly unauthorized (401)
+                if (res.status === 401) {
+                    console.log("Access denied (401), logging out.");
+                    logout();
+                } else {
+                    console.warn(`[Auth] Server returned ${res.status}, keeping local session for now.`);
+                    // We might not be able to fetch user details, but we don't destroy the token immediately
+                    // unless we are sure it's invalid.
+                    // However, if we don't set user, isAuthenticated remains false (from initial state)? 
+                    // No, checkAuth is called on mount.
+                    // If we assume token is good, we should probably set isAuthenticated=true? 
+                    // No, if we can't verify with server, we can't be sure.
+                    // But requirement says: "Do NOT auto-logout just because token exists."
+                    // If network error/500, we probably shouldn't logout, but we can't fully authenticate either.
+                    // For now, following specific instruction: "ensure it does NOT clear token unless backend returns 401."
+                }
             }
         } catch (error) {
-            console.error('Auth check failed', error);
-            setUser(null);
-            setIsAuthenticated(false);
-            setMasterKey(null);
+            console.error('Auth check failed (Network/Other)', error);
+            // checkAuth logic instruction: "Does NOT clear token unless backend returns 401."
+            // So on network error, we do NOTHING (keep token).
         } finally {
             setLoading(false);
         }
@@ -60,25 +97,57 @@ export const AuthProvider = ({ children }) => {
         checkAuth();
     }, [checkAuth]);
 
-    const handleLogout = useCallback(async () => {
+    const handleLogout = useCallback(async (reason = "manual") => {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-            await fetch(`${apiUrl}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+            await fetch(`${apiUrl}/api/auth/logout`, { method: 'POST' });
         } catch (error) {
-            console.error('Logout failed', error);
+            // console.error('Logout failed', error);
         }
         localStorage.removeItem('token');
+        setToken(null);
         setUser(null);
         setIsAuthenticated(false);
-        setMasterKey(null);
-        navigate('/');
+        setEncryptionKey(null); // Clear key from memory
+        navigate('/', { state: { logoutReason: reason } });
     }, [navigate]);
 
-    useIdleTimer(300000, handleLogout, isAuthenticated);
+    useEffect(() => {
+        if (!token) return;
+
+        const INACTIVITY_TIME = 30 * 60 * 1000;
+        let timeoutId;
+
+        const logout = (reason) => {
+            handleLogout(reason);
+        };
+
+        const resetTimer = () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => logout("inactivity"), INACTIVITY_TIME);
+        };
+
+        // Reset timer on these events
+        const events = ['mousemove', 'keydown', 'click', 'scroll'];
+
+        const handleActivity = () => {
+            resetTimer();
+        };
+
+        resetTimer();
+
+        events.forEach(event => window.addEventListener(event, handleActivity));
+
+        return () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            events.forEach(event => window.removeEventListener(event, handleActivity));
+        };
+    }, [token, handleLogout]);
 
     const login = async (email, password) => {
         try {
-            const authToken = await deriveAuthToken(password);
+            // 1. Derive Password (Hash) for Login
+            const passwordForLogin = await deriveEncryptionKey(password); // Using renamed function
 
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             const res = await fetch(`${apiUrl}/api/auth/login`, {
@@ -86,8 +155,7 @@ export const AuthProvider = ({ children }) => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                credentials: 'include',
-                body: JSON.stringify({ email, password: authToken })
+                body: JSON.stringify({ email, password: passwordForLogin })
             });
 
             if (!res.ok) {
@@ -103,13 +171,18 @@ export const AuthProvider = ({ children }) => {
 
             const data = await res.json();
 
-            if (data.token) {
+            // 2. Validate and Store JWT
+            if (data.token && data.token.split('.').length === 3) {
                 localStorage.setItem('token', data.token);
+                setToken(data.token);
+            } else {
+                throw new Error("Invalid token received from server");
             }
 
             setUser(data.user);
             setIsAuthenticated(true);
 
+            // 3. Attempt to Derive Encryption Key (for Decryption)
             if (data.user.kdfSalt && data.user.validatorHash) {
                 await unlockFn(password, data.user);
             }
@@ -142,7 +215,7 @@ export const AuthProvider = ({ children }) => {
                 if (!isValid) throw new Error("Invalid password (encryption check failed)");
             }
 
-            setMasterKey(mk);
+            setEncryptionKey(mk); // Store ONLY in state
             return true;
         } catch (e) {
             console.error("Unlock failed", e);
@@ -150,20 +223,21 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
-        handleLogout();
+    const logout = (reason) => {
+        handleLogout(reason);
     };
 
     const contextValue = React.useMemo(() => ({
         user,
         isAuthenticated,
-        masterKey,
+        token,
+        encryptionKey, // Expose renamed key
         loading,
         login,
         logout,
         unlock,
-        isUnlocked: !!masterKey,
-    }), [user, isAuthenticated, masterKey, loading, login, logout, unlock]);
+        isUnlocked: !!encryptionKey,
+    }), [user, isAuthenticated, token, encryptionKey, loading, login, logout, unlock]);
 
     return (
         <AuthContext.Provider value={contextValue}>
