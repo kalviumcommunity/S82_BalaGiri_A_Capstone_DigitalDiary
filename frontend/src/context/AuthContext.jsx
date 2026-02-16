@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
                     logout();
                 } else {
                     console.warn(`[Auth] Server returned ${res.status}, keeping local session for now.`);
-                    
+
                 }
             }
         } catch (error) {
@@ -176,7 +176,12 @@ export const AuthProvider = ({ children }) => {
 
             // 3. Attempt to Derive Encryption Key (for Decryption)
             if (data.user.kdfSalt && data.user.validatorHash) {
-                await unlockFn(password, data.user);
+                const key = await unlockFn(password, data.user);
+                if (!key) {
+                    // If for some reason unlockFn returns false/null but didn't throw (though it should throw),
+                    // we treat it as a failure to fully login.
+                    throw new Error("Failed to derive encryption key.");
+                }
             }
 
             return data;
@@ -208,7 +213,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             setEncryptionKey(mk); // Store ONLY in state
-            return true;
+            return mk; // Return the key so login can verify it
         } catch (e) {
             console.error("Unlock failed", e);
             throw new Error(e.message || "Failed to unlock diary.");

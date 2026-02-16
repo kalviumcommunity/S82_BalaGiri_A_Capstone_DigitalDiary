@@ -21,7 +21,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isEncrypting, setIsEncrypting] = useState(false);
-  const { user, masterKey } = useAuth();
+  const { user, encryptionKey, logout } = useAuth();
 
   const isDark = currentTheme?.text?.includes('E1E7FF');
   const textColor = isDark ? 'text-white' : 'text-slate-800';
@@ -76,15 +76,16 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
     e.preventDefault();
 
     try {
-      if (!masterKey) {
-        alert("Encryption key missing. Please unlock your diary first.");
+      if (!encryptionKey) {
+        // Critical security fix: Redirect if key is missing
+        logout("Encryption key missing");
         return;
       }
 
       setIsEncrypting(true);
 
       const entrySalt = generateSalt();
-      const entryKey = await deriveEntryKey(masterKey, entrySalt);
+      const entryKey = await deriveEntryKey(encryptionKey, entrySalt);
 
       const photosMeta = [];
       const encryptedPhotoBlobs = [];

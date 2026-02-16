@@ -20,9 +20,13 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
 
   const handleLogin = async () => {
     try {
+      // login() inside AuthContext now awaits unlockFn internally
+      // and throws if key derivation fails.
       await login(email, password);
 
+      // Only navigate if login succeeded (no error thrown)
       navigate("/diary");
+
       if (onLoginSuccess) {
         onLoginSuccess();
       } else {
