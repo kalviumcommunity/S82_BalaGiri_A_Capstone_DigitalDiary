@@ -73,15 +73,7 @@ export const AuthProvider = ({ children }) => {
                     logout();
                 } else {
                     console.warn(`[Auth] Server returned ${res.status}, keeping local session for now.`);
-                    // We might not be able to fetch user details, but we don't destroy the token immediately
-                    // unless we are sure it's invalid.
-                    // However, if we don't set user, isAuthenticated remains false (from initial state)? 
-                    // No, checkAuth is called on mount.
-                    // If we assume token is good, we should probably set isAuthenticated=true? 
-                    // No, if we can't verify with server, we can't be sure.
-                    // But requirement says: "Do NOT auto-logout just because token exists."
-                    // If network error/500, we probably shouldn't logout, but we can't fully authenticate either.
-                    // For now, following specific instruction: "ensure it does NOT clear token unless backend returns 401."
+                    
                 }
             }
         } catch (error) {
