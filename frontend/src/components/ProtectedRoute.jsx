@@ -11,7 +11,12 @@ const ProtectedRoute = ({ children }) => {
 
   // Check TOKEN presence AND Encryption Key
   // If token exists but key is missing (e.g. refresh), force login to re-derive key.
-  if (!token || !encryptionKey) { // encryptionKey check added
+  // Check TOKEN presence AND Encryption Key
+  // If token exists but key is missing (e.g. refresh), force login to re-derive key.
+  if (!isAuthenticated || !token || !encryptionKey) {
+    // If token exists but no key -> It means we refreshed.
+    // We must redirect to LOGIN (Landing page) to re-enter password.
+    // passing state to open login modal if landing page supports it
     return <Navigate to="/" replace state={{ openLogin: true }} />;
   }
 

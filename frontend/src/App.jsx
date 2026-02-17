@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookHeart, Moon, Sun, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Routes, Route, useLocation, Link, useNavigate } from 'react-router-dom';
@@ -13,6 +13,7 @@ import VerifyLogin from './Pages/VerifyLogin';
 import SuccessAnimation from './components/SuccessAnimation';
 import GlobalDialog from './components/GlobalDialog';
 import { useAuth } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const themes = {
   dark: {
@@ -288,7 +289,11 @@ function App() {
           </div>
         } />
 
-        <Route path="/diary" element={<DiaryPage currentTheme={currentTheme} isDark={isDark} setIsDark={setIsDark} />} />
+        <Route path="/diary" element={
+          <ProtectedRoute>
+            <DiaryPage currentTheme={currentTheme} isDark={isDark} setIsDark={setIsDark} />
+          </ProtectedRoute>
+        } />
         <Route path="/features" element={<Features currentTheme={currentTheme} isDark={isDark} />} />
         <Route path="/learn-more" element={<LearnMore currentTheme={currentTheme} isDark={isDark} />} />
         <Route path="/contact" element={<Contact currentTheme={currentTheme} isDark={isDark} />} />

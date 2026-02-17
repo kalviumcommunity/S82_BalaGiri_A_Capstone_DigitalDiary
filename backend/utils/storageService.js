@@ -32,9 +32,15 @@ const localStorageEngine = multer.diskStorage({
         cb(null, folder);
     },
     filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+        // E2EE Check: If filename matches generated ID pattern, use it directly
+        // Pattern: Alphanumeric string + .enc or .audio.enc
+        if (/^[a-zA-Z0-9]+\.(enc|audio\.enc)$/.test(file.originalname)) {
+            cb(null, file.originalname);
+        } else {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+            const ext = path.extname(file.originalname);
+            cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+        }
     }
 });
 
@@ -52,10 +58,23 @@ const cloudinaryStorageEngine = hasCloudinaryKeys ? new CloudinaryStorage({
             resource_type = 'video';
         }
 
+        // E2EE Check for Cloudinary
+        let public_id = file.fieldname + '-' + Date.now();
+        if (/^[a-zA-Z0-9]+\.(enc|audio\.enc)$/.test(file.originalname)) {
+            // Remove extension for public_id if desired, or keep it. 
+            // Cloudinary usually adds extension based on format, but for raw blobs it might be different.
+            // Since we are uploading encrypted blobs, we might want to keep the name as is for the public_id to track it?
+            // However, Cloudinary public_ids don't typically include extension. 
+            // Let's use the basename of the encrypted file as the public_id to be safe and consistent.
+            public_id = path.parse(file.originalname).name;
+            // Note: If the file is 'abc.enc', name is 'abc'. If 'abc.audio.enc', name is 'abc.audio'.
+            // This preserves the full unique ID part.
+        }
+
         return {
             folder: folder,
             resource_type: resource_type,
-            public_id: file.fieldname + '-' + Date.now(),
+            public_id: public_id,
         };
     },
 }) : null;
