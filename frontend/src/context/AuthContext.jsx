@@ -15,11 +15,7 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(() => localStorage.getItem('token'));
     const [encryptionKey, setEncryptionKey] = useState(null);
 
-    // Debug logs
-    useEffect(() => {
-        console.log("AuthContext token state:", token);
-        console.log("localStorage token:", localStorage.getItem("token"));
-    }, [token]);
+
 
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -104,19 +100,31 @@ export const AuthProvider = ({ children }) => {
         navigate('/', { state: { logoutReason: reason } });
     }, [navigate]);
 
+    const lock = useCallback(() => {
+        setEncryptionKey(null);
+    }, []);
+
     useEffect(() => {
         if (!token) return;
 
-        const INACTIVITY_TIME = 30 * 60 * 1000;
+        // 10 minutes inactivity lock
+        const INACTIVITY_TIME = 10 * 60 * 1000;
         let timeoutId;
 
-        const logout = (reason) => {
-            handleLogout(reason);
+        const handleInactivity = () => {
+            // If we are already locked (no key), no need to lock again, 
+            // but we might want to logout if even more time passes? 
+            // For now, requirement is just auto-lock on inactivity.
+            if (encryptionKey) {
+                lock();
+            }
         };
 
         const resetTimer = () => {
             if (timeoutId) clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => logout("inactivity"), INACTIVITY_TIME);
+            if (encryptionKey) {
+                timeoutId = setTimeout(handleInactivity, INACTIVITY_TIME);
+            }
         };
 
         // Reset timer on these events
@@ -134,7 +142,7 @@ export const AuthProvider = ({ children }) => {
             if (timeoutId) clearTimeout(timeoutId);
             events.forEach(event => window.removeEventListener(event, handleActivity));
         };
-    }, [token, handleLogout]);
+    }, [token, encryptionKey, lock]);
 
     const login = async (email, password) => {
         try {
@@ -215,7 +223,7 @@ export const AuthProvider = ({ children }) => {
             setEncryptionKey(mk); // Store ONLY in state
             return mk; // Return the key so login can verify it
         } catch (e) {
-            console.error("Unlock failed", e);
+            console.error("Unlock failed");
             throw new Error(e.message || "Failed to unlock diary.");
         }
     };
@@ -233,8 +241,9 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         unlock,
+        lock,
         isUnlocked: !!encryptionKey,
-    }), [user, isAuthenticated, token, encryptionKey, loading, login, logout, unlock]);
+    }), [user, isAuthenticated, token, encryptionKey, loading, login, logout, unlock, lock]);
 
     return (
         <AuthContext.Provider value={contextValue}>

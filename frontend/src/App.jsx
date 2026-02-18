@@ -14,6 +14,7 @@ import SuccessAnimation from './components/SuccessAnimation';
 import GlobalDialog from './components/GlobalDialog';
 import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import UnlockModal from './components/UnlockModal';
 
 const themes = {
   dark: {
@@ -44,9 +45,26 @@ function App() {
   const [showSignup, setShowSignup] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const { isAuthenticated, isUnlocked } = useAuth();
+  const { isAuthenticated, isUnlocked, unlock } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState('');
+
+  const handleUnlock = async (password) => {
+    setIsUnlocking(true);
+    setUnlockError('');
+    try {
+      await unlock(password);
+      // Explicitly navigate to diary after unlock, replacing the current history entry
+      navigate('/diary', { replace: true });
+    } catch (err) {
+      setUnlockError(err.message);
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
 
   const handleLoginSuccess = (message) => {
     setSuccessMessage(message);
@@ -322,6 +340,15 @@ function App() {
             currentTheme={currentTheme}
             isDark={isDark}
             onLoginSuccess={() => handleLoginSuccess("Welcome Back!")}
+          />
+        )
+      }
+      {
+        isAuthenticated && !isUnlocked && (
+          <UnlockModal
+            onUnlock={handleUnlock}
+            error={unlockError}
+            isUnlocking={isUnlocking}
           />
         )
       }

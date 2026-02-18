@@ -123,7 +123,7 @@ export const decryptMasterKey = async (passwordKey, encryptedMasterKeyB64, ivB64
             ["encrypt", "decrypt"]
         );
     } catch (e) {
-        console.error("Master Key Decryption Failed", e);
+        // console.error("Master Key Decryption Failed", e);
         throw new Error("Incorrect password or corrupted key.");
     }
 };
@@ -294,21 +294,52 @@ export const checkValidator = async (validatorStr, masterKey) => {
 
 
 export const encryptEntryPayload = async (entryData, key) => {
-    const jsonString = JSON.stringify(entryData);
+    // Ensure strict string types for mood to avoid object serialization issues
+    // STRICT payload structure enforcement:
+    const payload = {
+        title: String(entryData.title || ""),
+        content: String(entryData.content || ""),
+        mood: typeof entryData.mood === "string" ? entryData.mood : ""
+    };
 
-    const { ciphertext, iv } = await encryptWithKey(jsonString, key);
+    // Explicitly encode the JSON string
+    // Use TextEncoder to ensure consistent byte representation
+    const jsonString = JSON.stringify(payload);
+    const enc = new TextEncoder();
+    const encodedPayload = enc.encode(jsonString);
 
-    return { payload: ciphertext, iv };
+    const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+
+    const encryptedBuffer = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        encodedPayload
+    );
+
+    return {
+        payload: arrayBufferToBase64(encryptedBuffer),
+        iv: arrayBufferToBase64(iv)
+    };
 };
 
-export const decryptEntryPayload = async (payload, iv, key) => {
+export const decryptEntryPayload = async (payload, ivB64, key, entryId) => {
     try {
-        const jsonString = await decryptWithKey(payload, iv, key);
+        const iv = base64ToArrayBuffer(ivB64);
+        const ciphertext = base64ToArrayBuffer(payload);
 
+        const decryptedBuffer = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: new Uint8Array(iv) },
+            key,
+            ciphertext
+        );
+
+        const dec = new TextDecoder();
+        const jsonString = dec.decode(decryptedBuffer);
         return JSON.parse(jsonString);
+
     } catch (e) {
-        console.error("Payload decryption failed", e);
-        throw new Error("Failed to decrypt entry payload.");
+        // Return corrupted flag with ID instead of throwing
+        return { corrupted: true, id: entryId };
     }
 };
 
