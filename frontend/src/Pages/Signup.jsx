@@ -35,8 +35,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       const { encryptedMasterKey, iv: masterKeyIV } = await encryptMasterKey(keyMaterial, passwordKey);
       const validatorHash = await createValidator(masterKey);
       const authToken = await deriveEncryptionKey(password);
-      console.log("Signup (Frontend): Derived AuthToken length:", authToken.length);
-      console.log("Signup (Frontend): Derived AuthToken preview:", authToken.substring(0, 15) + "...");
+
 
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';

@@ -11,9 +11,10 @@ import 'react-calendar/dist/Calendar.css';
 import '../customCalendar.css';
 import {
   deriveEntryKey,
-  decryptWithKey,
   decryptFileWithKey
 } from '../utils/cryptoUtils';
+
+
 
 function DiaryPage({ currentTheme, isDark, setIsDark }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,7 +85,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
               urlsToRevoke.push(url);
               return url;
             } catch (e) {
-              console.error("Failed to load photo", idx, e);
+              console.error("Failed to load photo");
               return null;
             }
           }));
@@ -114,7 +115,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
               newMediaUrls.audio = url;
             }
           } catch (e) {
-            console.error("Failed to load audio", e);
+            console.error("Failed to load audio");
           }
         }
 
@@ -164,7 +165,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
       if (!contentType || !contentType.includes("application/json")) {
         // If 401, mostly session expired.
         if (res.status === 401) {
-          console.warn("Session expired or invalid token.");
+
           logout();
           return;
         }
@@ -244,7 +245,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
     }
 
     return matchesSearch && matchesMood && matchesDate;
-  }), [entries, searchTerm, selectedMood, selectedDate, decryptedEntries]);
+  }), [searchTerm, selectedMood, selectedDate, decryptedEntries]);
 
   const groupedEntries = useMemo(() => filteredEntries.reduce((acc, entry) => {
     const date = new Date(entry.date);
@@ -272,18 +273,30 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
 
 
 
+  // Safe decryption wrapper
   const processEntry = useCallback(async (entry) => {
     if (!entry.entrySalt || (!entry.iv && !entry.content)) return entry;
 
     try {
-      const entryKey = await deriveEntryKey(encryptionKey, entry.entrySalt); // Updated
+      const entryKey = await deriveEntryKey(encryptionKey, entry.entrySalt);
       const crypto = await import('../utils/cryptoUtils');
 
       if (entry.payload) {
-        const decryptedData = await crypto.decryptEntryPayload(entry.payload, entry.iv, entryKey);
+        // Updated to pass entry._id for corrupted detection
+        const decryptedData = await crypto.decryptEntryPayload(entry.payload, entry.iv, entryKey, entry._id);
+
+        if (decryptedData && decryptedData.corrupted) {
+          return decryptedData;
+        }
+
+        if (!decryptedData) {
+          return { corrupted: true, id: entry._id };
+        }
+
         return { ...entry, ...decryptedData };
       }
 
+      // Legacy support
       const decryptedContent = await decryptWithKey(entry.content, entry.iv, entryKey);
 
       let decryptedTitle = entry.title;
@@ -291,7 +304,9 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
         const [tIV, tCipher] = entry.title.split(':');
         try {
           decryptedTitle = await decryptWithKey(tCipher, tIV, entryKey);
-        } catch (e) { }
+        } catch (e) {
+          // Silent fail for legacy title
+        }
       }
 
       let decryptedMood = entry.mood;
@@ -299,28 +314,51 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
         const [mIV, mCipher] = entry.mood.split(':');
         try {
           decryptedMood = await decryptWithKey(mCipher, mIV, entryKey);
-        } catch (e) { }
+        } catch (e) {
+          // Silent fail for legacy mood
+        }
       }
 
       return { ...entry, content: decryptedContent, title: decryptedTitle, mood: decryptedMood };
     } catch (err) {
-      console.error("Failed to decrypt entry:", entry._id, err);
-      return { ...entry, content: "⚠️ Decryption Failed", title: "Error" };
+      // Return corrupted flag for legacy failures too
+      return { corrupted: true, id: entry._id };
     }
-  }, [encryptionKey]); // Updated dep
+  }, [encryptionKey]);
 
   useEffect(() => {
-    if (encryptionKey && entries.length > 0) { // Updated check
+    if (encryptionKey && entries.length > 0) {
       setIsDecrypting(true);
-      Promise.all(entries.map(processEntry)).then(decrypted => {
-        const sorted = decrypted.sort((a, b) => new Date(b.date) - new Date(a.date));
+      Promise.all(entries.map(processEntry)).then(async (results) => {
+        const validEntries = results.filter(e => e && !e.corrupted);
+        const corruptedEntries = results.filter(e => e && e.corrupted);
+
+        if (corruptedEntries.length > 0) {
+          const authToken = localStorage.getItem('token');
+          const headers = { 'Authorization': `Bearer ${authToken}` };
+
+          await Promise.all(corruptedEntries.map(async (entry) => {
+            try {
+              if (entry.id) {
+                await fetch(`${import.meta.env.VITE_API_URL}/api/diary/delete/${entry.id}`, {
+                  method: 'DELETE',
+                  headers
+                });
+              }
+            } catch (e) { }
+          }));
+
+          console.log("Corrupted entries cleaned successfully");
+        }
+
+        const sorted = validEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
         setDecryptedEntries(sorted);
         setIsDecrypting(false);
       });
     } else {
-      setDecryptedEntries(entries);
+      setDecryptedEntries([]);
     }
-  }, [entries, encryptionKey, processEntry]); // Updated dep
+  }, [entries, encryptionKey, processEntry]);
 
   return (
     <div className={`pt-20 sm:pt-24 px-4 md:px-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-[#4E71FF]/0' : ''}`}>
@@ -472,7 +510,7 @@ function DiaryPage({ currentTheme, isDark, setIsDark }) {
                         className={`w-full px-4 py-4 rounded-xl ${isDarkMode ? 'bg-black/30 focus:bg-black/40' : 'bg-slate-100 focus:bg-white'} ${text} focus:outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none border border-transparent`}
                       >
                         <option value="" className="text-gray-500">All Moods</option>
-                        {[...new Set(entries.map(e => e.mood))].filter(Boolean).map(mood => (
+                        {[...new Set(decryptedEntries.map(e => e.mood))].filter(Boolean).map(mood => (
                           <option key={mood} value={mood} className="text-gray-800">{mood}</option>
                         ))}
                       </select>
