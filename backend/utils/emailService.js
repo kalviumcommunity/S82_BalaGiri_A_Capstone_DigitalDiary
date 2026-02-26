@@ -1,0 +1,57 @@
+const nodemailer = require('nodemailer');
+
+const getTransporter = async () => {
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        return nodemailer.createTransport({
+            service: process.env.EMAIL_SERVICE || 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+    }
+
+    try {
+        const testAccount = await nodemailer.createTestAccount();
+        return nodemailer.createTransport({
+            host: "smtp.ethereal.email",
+            port: 587,
+            secure: false,
+            auth: {
+                user: testAccount.user,
+                pass: testAccount.pass,
+            },
+        });
+    } catch (err) {
+        console.error("Failed to create test account", err);
+        return null;
+    }
+};
+
+
+exports.sendMagicLinkEmail = async (email, link) => {
+
+    const transporter = await getTransporter();
+
+    if (!transporter) {
+        throw new Error("Email Configuration Error: Unable to create transport. Check server logs/env variables.");
+    }
+
+    const mailOptions = {
+        from: '"Digital Diary" <no-reply@digitaldiary.com>',
+        to: email,
+        subject: 'Your Magic Login Link',
+        html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Welcome to Digital Diary</h2>
+        <p>Click the button below to log in. This link expires in 15 minutes.</p>
+        <a href="${link}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Log In</a>
+        <p>Or copy this link: ${link}</p>
+      </div>
+    `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    return info;
+};
