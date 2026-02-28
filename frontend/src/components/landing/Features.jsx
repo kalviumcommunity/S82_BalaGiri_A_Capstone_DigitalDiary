@@ -16,14 +16,18 @@ const FeatureCard = ({ icon: Icon, title, description, isDark, index }) => {
     <motion.div
       initial={{ opacity: 0, y: 50 }}
       whileInView={{ opacity: 1, y: 0 }}
+      whileHover={{
+        y: -10,
+        scale: 1.02,
+        transition: { type: "spring", stiffness: 300, damping: 20 }
+      }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, delay: index * 0.08 }}
       onMouseMove={handleMouseMove}
-      className="group relative h-full flex flex-col p-8 overflow-hidden rounded-[16px] border transition-colors shadow-sm"
-      style={{
-        background: isDark ? '#1C1828' : '#FFFFFF',
-        borderColor: isDark ? '#2E2940' : '#E8D9C5',
-      }}
+      className={`group relative h-full flex flex-col p-8 overflow-hidden rounded-[16px] border transition-all duration-300 shadow-sm ${isDark
+          ? 'bg-[#1C1828] border-[#2E2940] hover:border-[#C9956A]/50 hover:shadow-[0_12px_40px_rgba(201,149,106,0.15)]'
+          : 'bg-[#FFFFFF] border-[#E8D9C5] hover:border-[#7B3F20]/40 hover:shadow-[0_12px_40px_rgba(123,63,32,0.12)]'
+        }`}
     >
       {/* Spotlight Effect */}
       <div
