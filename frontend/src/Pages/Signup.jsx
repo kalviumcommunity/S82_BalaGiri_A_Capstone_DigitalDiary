@@ -83,10 +83,10 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
     }
   };
 
-  const overlayBg = isDark ? 'bg-[#1B2A4A]/60 border border-white/10' : 'bg-white/60 border border-white/40';
-  const textColor = isDark ? 'text-white' : 'text-slate-800';
-  const inputBg = isDark ? 'bg-black/20 focus:bg-black/30' : 'bg-white/40 focus:bg-white/60';
-  const placeholderColor = isDark ? 'placeholder-white/60' : 'placeholder-slate-500';
+  const overlayBg = isDark ? 'bg-[#1C1828] border border-[#2E2940]' : 'bg-white border border-[#E8D9C5]';
+  const textColor = isDark ? 'text-[#F0E6D3]' : 'text-[#1E0F00]';
+  const inputBg = isDark ? 'bg-[#13111C] focus:bg-[#2E2940]/50' : 'bg-[#FAF3E8] focus:bg-white';
+  const placeholderColor = isDark ? 'placeholder:text-[#6B6070]' : 'placeholder:text-[#B8A898]';
 
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-black/40 backdrop-blur-sm z-50">
@@ -95,7 +95,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
         animate={controls}
         className={`${overlayBg} backdrop-blur-xl rounded-2xl p-6 sm:p-8 w-full max-w-[400px] mx-4 relative shadow-2xl transition-all ${textColor}`}
       >
-        <button onClick={onClose} className={`absolute top-4 right-4 p-1 rounded-full hover:bg-white/10 transition-colors ${textColor}`}>
+        <button onClick={onClose} className={`absolute top-4 right-4 p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${textColor}`}>
           <X size={24} />
         </button>
         <h2 className="text-3xl font-bold mb-8 text-center tracking-tight">Create Account</h2>
@@ -106,14 +106,14 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
             placeholder="Name"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className={`w-full px-5 py-3 rounded-xl ${inputBg} ${textColor} ${placeholderColor} focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition-all border border-transparent focus:border-cyan-400/30`}
+            className={`w-full px-5 py-3 rounded-xl ${inputBg} ${textColor} ${placeholderColor} focus:outline-none focus:ring-1 focus:ring-[#C4862A] dark:focus:ring-[#C9956A] transition-all border border-transparent focus:border-[#C4862A] dark:focus:border-[#C9956A]`}
           />
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={`w-full px-5 py-3 rounded-xl ${inputBg} ${textColor} ${placeholderColor} focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition-all border border-transparent focus:border-cyan-400/30`}
+            className={`w-full px-5 py-3 rounded-xl ${inputBg} ${textColor} ${placeholderColor} focus:outline-none focus:ring-1 focus:ring-[#C4862A] dark:focus:ring-[#C9956A] transition-all border border-transparent focus:border-[#C4862A] dark:focus:border-[#C9956A]`}
           />
           <div className="relative">
             <input
@@ -121,7 +121,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={`w-full px-5 py-3 rounded-xl ${inputBg} ${textColor} ${placeholderColor} focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition-all border border-transparent focus:border-cyan-400/30`}
+              className={`w-full px-5 py-3 rounded-xl ${inputBg} ${textColor} ${placeholderColor} focus:outline-none focus:ring-1 focus:ring-[#C4862A] dark:focus:ring-[#C9956A] transition-all border border-transparent focus:border-[#C4862A] dark:focus:border-[#C9956A]`}
             />
             <button
               onClick={() => setShowPassword(!showPassword)}
@@ -136,7 +136,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
           <button
             onClick={handleRegister}
             disabled={isGeneratingKeys}
-            className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg shadow-cyan-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+            className="w-full bg-[#7B3F20] dark:bg-[#C9956A] text-white dark:text-[#0D0D1A] shadow-[0_4px_20px_rgba(123,63,32,0.35)] dark:shadow-[0_4px_20px_rgba(201,149,106,0.35)] hover:bg-[#5C2E14] dark:hover:bg-[#E8B86D] py-3.5 rounded-xl font-bold text-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
           >
             {isGeneratingKeys ? (
               <>
@@ -154,7 +154,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
           Already have an account?{" "}
           <span
             onClick={switchToLogin}
-            className="font-bold underline cursor-pointer hover:text-cyan-400 transition-colors"
+            className="font-bold underline cursor-pointer hover:text-[#7B3F20] dark:hover:text-[#C9956A] transition-colors"
           >
             Login
           </span>

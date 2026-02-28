@@ -50,7 +50,7 @@ const VerifyLogin = () => {
             <div className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl shadow-2xl text-center max-w-md w-full border border-white/20">
                 <h2 className="text-3xl font-bold mb-4 animate-pulse">{status}</h2>
                 <div className="flex justify-center mt-6">
-                    <div className="w-12 h-12 border-4 border-white/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                    <div className="w-12 h-12 border-4 border-white/30 border-t-[#C4862A] dark:border-t-[#C9956A] rounded-full animate-spin"></div>
                 </div>
             </div>
         </div>

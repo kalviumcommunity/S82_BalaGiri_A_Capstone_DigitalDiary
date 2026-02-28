@@ -29,17 +29,17 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const { encryptionKey, logout } = useAuth();
   const emojiPickerRef = useRef(null);
 
-  const isDark = currentTheme?.text?.includes('E1E7FF');
-  const textColor = isDark ? 'text-white' : 'text-slate-800';
-  const subTextColor = isDark ? 'text-white/60' : 'text-slate-500';
+  const isDark = currentTheme?.text?.includes('E1E7FF') || document.documentElement.classList.contains('dark');
+  const textColor = isDark ? 'text-[#F0E6D3]' : 'text-[#1E0F00]';
+  const subTextColor = isDark ? 'text-[#9B8EA0]' : 'text-[#7A6050]';
 
   // Design improvements
   const modalBg = isDark
-    ? 'bg-[#0f172a]/95 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.6)]'
-    : 'bg-white/95 border border-white/40 shadow-2xl';
+    ? 'bg-[#1C1828] border border-[#2E2940] shadow-[0_0_50px_rgba(0,0,0,0.6)]'
+    : 'bg-white border border-[#E8D9C5] shadow-2xl';
 
-  const inputBg = isDark ? 'bg-black/20 focus:bg-black/40' : 'bg-slate-50 focus:bg-white';
-  const borderColor = isDark ? 'border-white/10' : 'border-slate-200';
+  const inputBg = isDark ? 'bg-[#13111C] focus:bg-[#2E2940]/50' : 'bg-[#FAF3E8] focus:bg-white';
+  const borderColor = isDark ? 'border-[#2E2940]' : 'border-[#E8D9C5]';
 
   useEffect(() => {
     if (entry) {
@@ -228,7 +228,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
         {errorMsg && <FailureAnimation message={errorMsg} onClose={() => setErrorMsg('')} />}
 
         {/* Header */}
-        <div className="p-6 sm:p-8 pb-4 shrink-0 flex justify-between items-start border-b border-white/5">
+        <div className={`p-6 sm:p-8 pb-4 shrink-0 flex justify-between items-start border-b ${borderColor}`}>
           <div className="flex flex-col gap-1">
             <h2 className={`text-3xl font-bold ${textColor} tracking-tight`}>
               {entry ? 'Edit Entry' : 'New Entry'}
@@ -237,7 +237,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-full hover:bg-white/10 transition-colors ${textColor} hover:opacity-80`}
+            className={`p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${textColor} hover:opacity-80`}
           >
             <X className="w-6 h-6" />
           </button>
@@ -255,7 +255,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                   placeholder="Title your memory..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className={`w-full text-2xl font-semibold bg-transparent border-b ${borderColor} px-2 py-3 ${textColor} placeholder:text-gray-400 focus:outline-none focus:border-cyan-500 transition-colors`}
+                  className={`w-full text-2xl font-semibold bg-transparent border-b ${borderColor} px-2 py-3 ${textColor} placeholder:text-[#B8A898] dark:placeholder:text-[#6B6070] focus:outline-none focus:border-[#C4862A] dark:focus:border-[#C9956A] transition-colors`}
                   required
                 />
               </div>
@@ -265,13 +265,13 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                 <button
                   type="button"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${borderColor} ${inputBg} ${textColor} hover:border-cyan-500/50 transition-colors min-w-[140px] justify-center`}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${borderColor} ${inputBg} ${textColor} hover:border-[#C4862A] dark:hover:border-[#C9956A] transition-colors min-w-[140px] justify-center`}
                 >
                   {mood ? (
                     <span className="text-2xl">{mood}</span>
                   ) : (
                     <>
-                      <Smile className="w-5 h-5 text-gray-400" />
+                      <Smile className={`w-5 h-5 ${subTextColor}`} />
                       <span className={`${subTextColor} font-medium`}>Add Mood</span>
                     </>
                   )}
@@ -297,23 +297,23 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
             </div>
 
             {/* Content Textarea */}
-            <div className={`relative rounded-3xl p-1 ${isDark ? 'bg-gradient-to-br from-white/5 to-transparent' : 'bg-slate-50'}`}>
+            <div className={`relative rounded-3xl p-1`}>
               <textarea
                 placeholder="What's on your mind?..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className={`w-full px-6 py-5 rounded-2xl ${inputBg} ${textColor} text-lg leading-relaxed placeholder:text-gray-400 min-h-[300px] focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all resize-none border border-transparent`}
+                className={`w-full px-6 py-5 rounded-2xl ${inputBg} border border-transparent focus:border-[#C4862A] dark:focus:border-[#C9956A] ${textColor} text-lg leading-relaxed placeholder:text-[#B8A898] dark:placeholder:text-[#6B6070] min-h-[300px] focus:outline-none focus:ring-1 focus:ring-[#C4862A] dark:focus:ring-[#C9956A] transition-all resize-none`}
                 required
               />
             </div>
 
             {/* Media Controls */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/5">
+            <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t ${borderColor}`}>
               <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
                 {/* Photos */}
-                <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-cyan-500/10 ${textColor} border ${borderColor} hover:border-cyan-500/30 group`}>
-                  <Image className="w-5 h-5 group-hover:text-cyan-400 transition-colors" />
-                  <span className="font-medium group-hover:text-cyan-400">Photos {photos.length > 0 && `(${photos.length})`}</span>
+                <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-[#5C3A8C]/10 dark:hover:bg-[#7B5EA7]/10 ${textColor} border ${borderColor} hover:border-[#5C3A8C]/30 dark:hover:border-[#7B5EA7]/30 group`}>
+                  <Image className="w-5 h-5 group-hover:text-[#5C3A8C] dark:group-hover:text-[#7B5EA7] transition-colors" />
+                  <span className="font-medium group-hover:text-[#5C3A8C] dark:group-hover:text-[#7B5EA7]">Photos {photos.length > 0 && `(${photos.length})`}</span>
                   <input type="file" accept="image/*" multiple onChange={handlePhotoChange} className="hidden" />
                 </label>
 
@@ -321,7 +321,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                 <button
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all border ${isRecording ? 'bg-red-500/10 text-red-400 border-red-500/30 animate-pulse' : `${borderColor} hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 ${textColor}`}`}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all border ${isRecording ? 'bg-[#A63228]/10 text-[#A63228] dark:bg-[#C0504A]/10 dark:text-[#C0504A] border-[#A63228]/30 dark:border-[#C0504A]/30 animate-pulse' : `${borderColor} hover:bg-[#A63228]/10 hover:text-[#A63228] dark:hover:bg-[#C0504A]/10 dark:hover:text-[#C0504A] hover:border-[#A63228]/30 dark:hover:border-[#C0504A]/30 ${textColor}`}`}
                 >
                   {isRecording ? (
                     <>
@@ -331,7 +331,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                             key={i}
                             animate={{ height: [4, 12, 4] }}
                             transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
-                            className="w-1 bg-red-400 rounded-full"
+                            className="w-1 bg-[#A63228] dark:bg-[#C0504A] rounded-full"
                           />
                         ))}
                       </div>
@@ -344,7 +344,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                     </>
                   )}
                 </button>
-                {audioBlob && <span className="text-xs text-green-400 bg-green-900/20 px-2 py-1 rounded">Audio Saved</span>}
+                {audioBlob && <span className="text-xs text-[#C4862A] dark:text-[#E8B86D] bg-[#C4862A]/10 dark:bg-[#E8B86D]/10 px-2 py-1 rounded">Audio Saved</span>}
               </div>
 
               {/* Action Buttons */}
@@ -352,7 +352,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-colors ${subTextColor} hover:bg-white/5`}
+                  className={`px-6 py-3 rounded-xl font-semibold transition-colors ${subTextColor} hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-[#E8D9C5] dark:hover:border-[#2E2940]`}
                 >
                   Cancel
                 </button>
@@ -360,8 +360,8 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                   type="submit"
                   disabled={isSaving || showSuccess}
                   className={`
-                            px-8 py-3 rounded-xl font-bold text-white shadow-lg flex items-center gap-2 transition-all transform hover:-translate-y-0.5 active:translate-y-0
-                            ${isSaving || showSuccess ? 'bg-cyan-500/50 cursor-wait' : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-cyan-500/25'}
+                            px-8 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all transform hover:-translate-y-0.5 active:translate-y-0
+                            ${isSaving || showSuccess ? 'bg-[#C9956A]/50 text-white cursor-wait' : 'bg-[#7B3F20] dark:bg-[#C9956A] text-white dark:text-[#0D0D1A] hover:bg-[#5C2E14] dark:hover:bg-[#E8B86D] shadow-[0_4px_20px_rgba(123,63,32,0.35)] dark:shadow-[0_4px_20px_rgba(201,149,106,0.35)]'}
                         `}
                 >
                   {isSaving ? (

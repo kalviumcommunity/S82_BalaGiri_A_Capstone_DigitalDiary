@@ -1,62 +1,56 @@
-import React, { useState } from 'react';
-import { BookHeart, Moon, Sun, User } from 'lucide-react';
-import Login from './Login';
-import Signup from './Signup';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import PreLoader from '../components/ui/PreLoader';
+import Hero from '../components/landing/Hero';
+import Features from '../components/landing/Features';
+import HowItWorks from '../components/landing/HowItWorks';
+import SecuritySection from '../components/landing/SecuritySection';
+import Footer from '../components/landing/Footer';
+import ThemeToggle from '../components/ui/ThemeToggle';
+import { BookHeart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-function LandingPage({ isDark, setIsDark, currentTheme }) {
-  const [showLogin, setShowLogin] = useState(false);
-  const [showSignup, setShowSignup] = useState(false);
+const LandingPage = () => {
+  const [loading, setLoading] = useState(true);
+
+  // Prevent scrolling while loading
+  useEffect(() => {
+    if (loading) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [loading]);
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${currentTheme.background} text-white overflow-hidden`}>
+    <>
+      <PreLoader onComplete={() => setLoading(false)} />
 
-
-      <div className="relative z-10 text-center px-4 pt-48">
-        <h1 className={`text-6xl font-bold mb-6 ${currentTheme.text}`}>Welcome to Your Digital Diary</h1>
-        <p className={`text-xl mb-12 max-w-2xl mx-auto ${currentTheme.subtext}`}>
-          Capture your thoughts, memories, and dreams in a beautiful and secure digital space.
-          Your personal journey begins here.
-        </p>
-
-        <div className="flex justify-center space-x-6">
-          <button
-            onClick={() => setShowLogin(true)}
-            className={`${currentTheme.button} px-8 py-3 rounded-full font-semibold transition-colors flex items-center space-x-2 shadow-lg`}
+      <AnimatePresence>
+        {!loading && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="flex flex-col min-h-screen font-sans"
           >
-            <User className="w-5 h-5" />
-            <span>Get Started</span>
-          </button>
+            <main className="flex-grow">
+              <Hero />
+              <Features />
+              <HowItWorks />
+              <SecuritySection />
+            </main>
 
-          <Link to="/learn-more">
-            <button className={`border-2 px-8 py-3 rounded-full font-semibold transition-colors shadow-lg ${currentTheme.buttonOutline}`}>
-              Learn More
-            </button>
-          </Link>
-        </div>
-      </div>
-
-      {showLogin && (
-        <Login
-          onClose={() => setShowLogin(false)}
-          switchToSignup={() => {
-            setShowLogin(false);
-            setShowSignup(true);
-          }}
-        />
-      )}
-
-      {showSignup && (
-        <Signup
-          onClose={() => setShowSignup(false)}
-          switchToLogin={() => {
-            setShowSignup(false);
-            setShowLogin(true);
-          }}
-        />
-      )}
-    </div>
+            <Footer />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
-}
+};
 
 export default LandingPage;

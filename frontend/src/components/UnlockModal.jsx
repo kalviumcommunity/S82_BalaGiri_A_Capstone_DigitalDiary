@@ -15,16 +15,16 @@ const UnlockModal = ({ onUnlock, error, isUnlocking }) => {
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-[#1e293b] p-8 rounded-3xl shadow-2xl max-w-md w-full mx-4 border border-white/10 text-center relative overflow-hidden"
+                className="bg-[#1C1828] p-8 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.6)] max-w-md w-full mx-4 border border-[#2E2940] text-center relative overflow-hidden"
             >
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-500" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-[#C9956A]" />
 
-                <div className="w-16 h-16 bg-cyan-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-cyan-500/20">
-                    <Lock className="w-8 h-8 text-cyan-400" />
+                <div className="w-16 h-16 bg-[#C9956A]/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-[#C9956A]/20">
+                    <Lock className="w-8 h-8 text-[#C9956A]" />
                 </div>
 
-                <h2 className="text-2xl font-bold text-white mb-2">Diary Locked</h2>
-                <p className="text-gray-400 mb-8 text-sm leading-relaxed">
+                <h2 className="text-2xl font-bold text-[#F0E6D3] mb-2">Diary Locked</h2>
+                <p className="text-[#9B8EA0] mb-8 text-sm leading-relaxed">
                     Your entries are end-to-end encrypted for your privacy. Please enter your password to unlock them.
                 </p>
 
@@ -34,7 +34,7 @@ const UnlockModal = ({ onUnlock, error, isUnlocking }) => {
                         placeholder="Enter Password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-5 py-3.5 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all text-center text-lg tracking-widest"
+                        className="w-full px-5 py-3.5 rounded-xl bg-[#13111C] border border-[#2E2940] text-[#F0E6D3] placeholder:text-[#6B6070] focus:outline-none focus:ring-1 focus:ring-[#C9956A] focus:border-[#C9956A] transition-all text-center text-lg tracking-widest"
                         autoFocus
                     />
 
@@ -51,7 +51,7 @@ const UnlockModal = ({ onUnlock, error, isUnlocking }) => {
                     <button
                         type="submit"
                         disabled={!password || isUnlocking}
-                        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold text-lg shadow-lg hover:shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+                        className="w-full py-3.5 rounded-xl bg-[#C9956A] text-[#0D0D1A] font-bold text-lg shadow-[0_4px_20px_rgba(201,149,106,0.35)] hover:bg-[#E8B86D] transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
                     >
                         {isUnlocking ? (
                             <>
