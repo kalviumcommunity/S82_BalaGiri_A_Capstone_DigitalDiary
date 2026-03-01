@@ -73,16 +73,7 @@ const ProfileMenu = () => {
                                 <span className="text-sm font-medium">Appearance</span>
                                 <ThemeToggle />
                             </div>
-                            <button
-                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm transition-colors"
-                                style={{ color: 'var(--text-primary)' }}
-                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = isDark ? 'rgba(201,149,106,0.1)' : 'rgba(123,63,32,0.05)'}
-                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                            >
-                                <Settings className="w-5 h-5" style={{ color: isDark ? '#C9956A' : '#7B3F20' }} />
-                                Settings
-                            </button>
-                            <div className="h-px w-full my-2" style={{ background: isDark ? '#2E2940' : '#E8D9C5' }} />
+
                             <button
                                 onClick={() => { setIsOpen(false); logout(); }}
                                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-red-500 hover:bg-red-500/10 transition-colors"

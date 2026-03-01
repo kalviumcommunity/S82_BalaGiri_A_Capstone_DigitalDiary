@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Lock, Shield, Image as LucideImage, Calendar, Archive, Cloud } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
-const FeatureCard = ({ icon: Icon, title, description, isDark, index }) => {
+const FeatureCard = ({ icon: Icon, title, description, index }) => {
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -19,28 +19,27 @@ const FeatureCard = ({ icon: Icon, title, description, isDark, index }) => {
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, delay: index * 0.08 }}
       onMouseMove={handleMouseMove}
-      className="group relative h-full flex flex-col p-8 overflow-hidden rounded-[16px] border transition-colors shadow-sm"
+      className="group relative h-full flex flex-col p-8 overflow-hidden rounded-[16px] border transition-colors duration-300 shadow-sm"
       style={{
-        background: isDark ? '#1C1828' : '#FFFFFF',
-        borderColor: isDark ? '#2E2940' : '#E8D9C5',
+        background: 'var(--color-card-elevated)',
+        borderColor: 'var(--color-border)',
       }}
     >
       {/* Spotlight Effect */}
       <div
         className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 group-hover:opacity-100"
         style={{
-          background: `radial-gradient(300px circle at var(--mouse-x) var(--mouse-y), ${isDark ? 'rgba(201,149,106,0.1)' : 'rgba(123,63,32,0.06)'
-            }, transparent 70%)`,
+          background: `radial-gradient(300px circle at var(--mouse-x, 0) var(--mouse-y, 0), var(--shadow-color), transparent 70%)`,
         }}
       />
       {/* Shimmer on hover pseudo-element effect can be handled by the spotlight or an additional overlay */}
 
       <div className="relative z-10">
         <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center mb-6 shadow-sm"
-          style={{ background: isDark ? 'rgba(201,149,106,0.1)' : 'rgba(123,63,32,0.05)' }}
+          className="w-12 h-12 rounded-xl flex items-center justify-center mb-6 shadow-sm border"
+          style={{ background: 'var(--color-card-bg)', borderColor: 'var(--color-border)' }}
         >
-          <Icon className="w-6 h-6" style={{ color: isDark ? '#C9956A' : '#7B3F20' }} />
+          <Icon className="w-6 h-6" style={{ color: 'var(--color-primary)' }} />
         </div>
         <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-3">
           {title}
@@ -55,7 +54,7 @@ const FeatureCard = ({ icon: Icon, title, description, isDark, index }) => {
 
 function Features() {
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  // We can keep useTheme if needed for specific logic, but CSS vars handle the styling
 
   const features = [
     { icon: Lock, title: 'End-to-End Encryption', desc: 'Your words are encrypted the moment you type them. We built this so even WE cannot read your diary.' },
@@ -68,10 +67,10 @@ function Features() {
 
   return (
     <section
-      className="py-24 relative"
+      className="py-24 relative transition-colors duration-300"
       style={{
-        background: isDark ? '#0F0E1A' : '#FFF8F1',
-        borderTop: isDark ? '1px solid #2E2940' : '1px solid #E8D9C5'
+        background: 'var(--color-page-bg)',
+        borderTop: '1px solid var(--color-border)'
       }}
     >
       <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -81,7 +80,7 @@ function Features() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             className="text-sm font-bold uppercase tracking-widest mb-4"
-            style={{ color: isDark ? '#C9956A' : '#7B3F20' }}
+            style={{ color: 'var(--color-primary)' }}
           >
             WHAT MAKES IT DIFFERENT
           </motion.p>
@@ -90,7 +89,7 @@ function Features() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.8 }}
-            className="text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-6"
+            className="text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-6 drop-shadow-sm"
           >
             Built for Privacy. Designed for Memory.
           </motion.h2>
@@ -112,7 +111,6 @@ function Features() {
               icon={item.icon}
               title={item.title}
               description={item.desc}
-              isDark={isDark}
               index={index}
             />
           ))}

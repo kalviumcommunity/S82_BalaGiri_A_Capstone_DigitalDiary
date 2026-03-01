@@ -79,7 +79,7 @@ function App() {
 
       {location.pathname !== '/diary' && (
         <motion.nav
-          className="fixed top-0 w-full z-50 p-6 flex justify-center"
+          className="absolute top-0 w-full z-50 p-6 flex justify-center"
           initial={false}
           animate={{
             paddingTop: isScrolled ? '1rem' : '1.5rem',

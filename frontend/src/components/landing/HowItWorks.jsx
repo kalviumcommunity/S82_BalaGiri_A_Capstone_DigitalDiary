@@ -27,10 +27,11 @@ const HowItWorks = () => {
 
     return (
         <section
+            id="how-it-works"
             className="py-24 relative overflow-hidden"
             style={{
-                background: isDark ? '#13111C' : '#F5EBD8',
-                borderTop: isDark ? '1px solid #2E2940' : '1px solid #E8D9C5'
+                background: 'var(--color-page-bg)',
+                borderTop: '1px solid var(--color-border)'
             }}
         >
             <div className="container mx-auto px-6 max-w-lg md:max-w-4xl relative z-10">

@@ -27,11 +27,11 @@ const SecuritySection = () => {
 
     return (
         <section
-            className="py-24 relative"
+            className="py-24 relative transition-colors duration-300"
             id="security"
             style={{
-                background: isDark ? '#0D0D1A' : '#FAF3E8',
-                borderTop: isDark ? '1px solid #2E2940' : '1px solid #E8D9C5'
+                background: 'var(--color-page-bg)',
+                borderTop: '1px solid var(--color-border)'
             }}
         >
             <div className="container mx-auto px-6 max-w-6xl">
@@ -53,7 +53,7 @@ const SecuritySection = () => {
                         </p>
                         <div
                             className="h-1 w-24 opacity-50 rounded"
-                            style={{ background: isDark ? '#C9956A' : '#7B3F20' }}
+                            style={{ background: 'var(--color-primary)' }}
                         />
                     </motion.div>
 
@@ -70,23 +70,22 @@ const SecuritySection = () => {
                             >
                                 <motion.div
                                     animate={{
-                                        boxShadow: isDark
-                                            ? ['0 0 10px rgba(201,149,106,0.05)', '0 0 25px rgba(201,149,106,0.15)', '0 0 10px rgba(201,149,106,0.05)']
-                                            : ['0 0 10px rgba(123,63,32,0.05)', '0 0 25px rgba(123,63,32,0.15)', '0 0 10px rgba(123,63,32,0.05)']
+                                        boxShadow: ['0 0 10px var(--shadow-color)', '0 0 25px var(--shadow-color)', '0 0 10px var(--shadow-color)']
                                     }}
                                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: index * 0.5 }}
-                                    className="p-6 h-full flex flex-col justify-center border rounded-2xl backdrop-blur-sm"
+                                    className="p-6 h-full flex flex-col justify-center border rounded-2xl backdrop-blur-sm transition-colors duration-300"
                                     style={{
-                                        background: isDark ? '#13111C' : '#FFFFFF',
-                                        borderColor: isDark ? '#2E2940' : '#E8D9C5',
+                                        background: 'var(--color-card-elevated)',
+                                        borderColor: 'var(--color-border)',
                                     }}
                                 >
                                     <div className="flex items-center space-x-4 mb-3">
                                         <div
-                                            className="w-10 h-10 rounded-full flex items-center justify-center"
+                                            className="w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-colors duration-300"
                                             style={{
-                                                background: isDark ? 'rgba(201,149,106,0.1)' : 'rgba(123,63,32,0.08)',
-                                                color: isDark ? '#C9956A' : '#7B3F20'
+                                                background: 'var(--color-card-bg)',
+                                                borderColor: 'var(--color-border)',
+                                                color: 'var(--color-primary)'
                                             }}
                                         >
                                             <badge.icon className="w-5 h-5" />
