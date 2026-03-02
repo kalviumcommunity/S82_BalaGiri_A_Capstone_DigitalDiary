@@ -228,6 +228,17 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const magicLoginSuccess = (newToken, userData) => {
+        if (newToken && newToken.split('.').length === 3) {
+            localStorage.setItem('token', newToken);
+            setToken(newToken);
+            setUser(userData);
+            setIsAuthenticated(true);
+        } else {
+            throw new Error("Invalid token received");
+        }
+    };
+
     const logout = (reason) => {
         handleLogout(reason);
     };
@@ -242,6 +253,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         unlock,
         lock,
+        magicLoginSuccess,
         isUnlocked: !!encryptionKey,
     }), [user, isAuthenticated, token, encryptionKey, loading, login, logout, unlock, lock]);
 

@@ -11,6 +11,7 @@ import LearnMore from './Pages/LearnMore';
 import Contact from './Pages/Contact';
 import About from './Pages/About';
 import VerifyLogin from './Pages/VerifyLogin';
+import MagicLogin from './Pages/MagicLogin';
 import SuccessAnimation from './components/SuccessAnimation';
 import GlobalDialog from './components/GlobalDialog';
 import { useAuth } from './context/AuthContext';
@@ -79,7 +80,7 @@ function App() {
 
       {location.pathname !== '/diary' && (
         <motion.nav
-          className="fixed top-0 w-full z-50 p-6 flex justify-center"
+          className="absolute top-0 w-full z-50 p-6 flex justify-center"
           initial={false}
           animate={{
             paddingTop: isScrolled ? '1rem' : '1.5rem',
@@ -135,6 +136,7 @@ function App() {
             <Route path="/contact" element={<PageTransition><Contact isDark={isDark} /></PageTransition>} />
             <Route path="/about" element={<PageTransition><About isDark={isDark} /></PageTransition>} />
             <Route path="/verify-login" element={<PageTransition><VerifyLogin /></PageTransition>} />
+            <Route path="/magic-login" element={<PageTransition><MagicLogin /></PageTransition>} />
           </Routes>
         </AnimatePresence>
       </div>
@@ -162,7 +164,7 @@ function App() {
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {isAuthenticated && !isUnlocked && (
+        {isAuthenticated && !isUnlocked && location.pathname !== '/magic-login' && (
           <UnlockModal
             onUnlock={handleUnlock}
             error={unlockError}

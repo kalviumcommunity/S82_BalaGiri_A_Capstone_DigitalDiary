@@ -16,7 +16,6 @@ import {
 } from '../utils/cryptoUtils';
 import { useCardTilt } from '../hooks/useCardTilt';
 import { useTheme } from '../context/ThemeContext';
-import ThemeToggle from '../components/ui/ThemeToggle';
 
 const DiaryCard = ({ entry, setViewEntry, setEntryToEdit, handleDelete, text, subtext, bgCard }) => {
   const { onMouseMove, onMouseLeave, style } = useCardTilt({ maxTilt: 8, scale: 1.02 });
@@ -426,7 +425,6 @@ function DiaryPage() {
             </h1>
           </div>
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 md:space-x-4 relative w-full md:w-auto">
-            <ThemeToggle />
             <ProfileMenu />
           </div>
         </div>

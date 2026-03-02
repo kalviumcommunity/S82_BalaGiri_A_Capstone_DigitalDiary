@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const User = require('../models/User');
+const MagicToken = require('../models/MagicToken');
 const { sendMagicLinkEmail } = require('../utils/emailService');
 
 exports.signup = async (req, res) => {
@@ -118,13 +119,19 @@ exports.requestMagicLink = async (req, res) => {
       return res.status(400).json({ message: 'User not found. Please sign up to initialize encryption.' });
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
-    user.magicLinkToken = crypto.createHash('sha256').update(token).digest('hex');
-    user.magicLinkExpires = Date.now() + 15 * 60 * 1000;
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    await user.save();
+    // Create new MagicToken
+    const newMagicToken = new MagicToken({
+      userId: user._id,
+      tokenHash: tokenHash,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      used: false
+    });
+    await newMagicToken.save();
 
-    const frontendUrl = `http://localhost:5173/verify-login?token=${token}`;
+    const frontendUrl = `http://localhost:5173/magic-login?token=${rawToken}`;
 
     await sendMagicLinkEmail(user.email, frontendUrl);
 
@@ -133,6 +140,60 @@ exports.requestMagicLink = async (req, res) => {
   } catch (err) {
     console.error('[Auth] Error:', err);
     res.status(500).json({ message: 'Error sending magic link.' });
+  }
+};
+
+exports.verifyMagicLogin = async (req, res) => {
+  const { token } = req.body;
+  try {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const magicTokenMatch = await MagicToken.findOne({
+      tokenHash: hashedToken,
+      expiresAt: { $gt: Date.now() },
+      used: false
+    });
+
+    if (!magicTokenMatch) {
+      return res.status(400).json({ message: 'Invalid or expired magic link' });
+    }
+
+    // Mark token as used
+    magicTokenMatch.used = true;
+    await magicTokenMatch.save();
+
+    const user = await User.findById(magicTokenMatch.userId);
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+
+    const jwtToken = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.cookie('token', jwtToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 3600000
+    });
+
+    res.status(200).json({
+      success: true,
+      token: jwtToken,
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        kdfSalt: user.kdfSalt,
+        kdfIterations: user.kdfIterations,
+        validatorHash: user.validatorHash,
+        encryptedMasterKey: user.encryptedMasterKey,
+        masterKeyIV: user.masterKeyIV
+      }
+    });
+
+  } catch (err) {
+    console.error('[Auth] Error verifying magic login:', err);
+    res.status(500).json({ message: 'Error verifying magic link' });
   }
 };
 

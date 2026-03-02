@@ -99,7 +99,7 @@ const Hero = () => {
                             size="lg"
                             className="w-full sm:w-auto px-8"
                             onClick={() => {
-                                const element = document.getElementById('features');
+                                const element = document.getElementById('how-it-works');
                                 element?.scrollIntoView({ behavior: 'smooth' });
                             }}
                         >

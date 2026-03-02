@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Twitter, Github, Mail } from 'lucide-react';
 import ThemeToggle from '../ui/ThemeToggle';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -35,32 +34,8 @@ const Footer = () => {
                         <a href="/contact" className="hover:text-[var(--color-primary)] transition-colors">Contact</a>
                     </div>
 
-                    <div className="flex items-center space-x-6">
-                        <motion.a
-                            href="#"
-                            whileHover={{ y: -3, color: 'var(--color-primary)' }}
-                            style={{ color: 'var(--text-muted)' }}
-                        >
-                            <Twitter className="w-5 h-5" />
-                        </motion.a>
-                        <motion.a
-                            href="#"
-                            whileHover={{ y: -3, color: 'var(--color-primary)' }}
-                            style={{ color: 'var(--text-muted)' }}
-                        >
-                            <Github className="w-5 h-5" />
-                        </motion.a>
-                        <motion.a
-                            href="#"
-                            whileHover={{ y: -3, color: 'var(--color-primary)' }}
-                            style={{ color: 'var(--text-muted)' }}
-                        >
-                            <Mail className="w-5 h-5" />
-                        </motion.a>
-
-                        <div className="pl-4 flex items-center" style={{ borderLeft: isDark ? '1px solid #2E2940' : '1px solid #E8D9C5' }}>
-                            <ThemeToggle />
-                        </div>
+                    <div className="flex items-center">
+                        <ThemeToggle />
                     </div>
                 </div>
 
