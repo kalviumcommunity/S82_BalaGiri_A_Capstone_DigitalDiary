@@ -43,7 +43,6 @@ const About = () => {
     <div className="pb-24 pt-12 px-6 sm:px-12 relative z-10 transition-colors duration-300">
       <div className="max-w-5xl mx-auto">
 
-        {/* Title fade-in */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -57,7 +56,6 @@ const About = () => {
             Our Story
           </h1>
 
-          {/* Paragraph fade-in with 0.2s delay */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -68,7 +66,6 @@ const About = () => {
           </motion.p>
         </motion.div>
 
-        {/* Vision Card — slide up, no hover animation */}
         <SpotlightCard index={1} className="mb-8">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-[var(--text-primary)]">
             <BookOpen className="text-[var(--color-highlight)]" /> The Vision

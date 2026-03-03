@@ -19,14 +19,7 @@ const testFilename = (filename) => {
         originalname: filename
     };
 
-    // Access the filename function directly from the storage engine
-    // output of multer.diskStorage has 'getFilename' which calls our function but it's internal.
-    // However, the object returned by multer.diskStorage has a `getFilename` method.
-    // actually, let's just inspect the engine implementation.
-    // The engine returned by multer.diskStorage has `_handleFile`, `_removeFile`.
-    // It seems we can't easily unit test the configured engine without mocking multer internals or just testing the logic function if we extracted it.
-
-    // Since we didn't extract the function, let's try to verify via code inspection or by creating a temporary test file in the backend utils if possible? No, we can't easily require the internal function.
+    
 
     // Wait, let's look at how we CAN test it.
     // We can copy the logic into this script to verify the REGEX at least.

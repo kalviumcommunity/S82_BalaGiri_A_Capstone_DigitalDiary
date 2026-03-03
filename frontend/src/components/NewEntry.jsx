@@ -16,7 +16,7 @@ const RECORDING_BARS = [1, 2, 3, 4];
 function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [mood, setMood] = useState(''); // Stores Emoji String
+  const [mood, setMood] = useState('');
   const [photos, setPhotos] = useState([]);
   const [audioBlob, setAudioBlob] = useState(null);
   const [mediaRecorder, setMediaRecorder] = useState(null);
@@ -33,7 +33,6 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
   const textColor = isDark ? 'text-[#F0E6D3]' : 'text-[#1E0F00]';
   const subTextColor = isDark ? 'text-[#9B8EA0]' : 'text-[#7A6050]';
 
-  // Design improvements
   const modalBg = isDark
     ? 'bg-[#1C1828] border border-[#2E2940] shadow-[0_0_50px_rgba(0,0,0,0.6)]'
     : 'bg-white border border-[#E8D9C5] shadow-2xl';
@@ -49,7 +48,6 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
     }
   }, [entry]);
 
-  // Click outside to close emoji picker
   useEffect(() => {
     function handleClickOutside(event) {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
@@ -232,7 +230,6 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
         {showSuccess && <SuccessAnimation message="Entry Saved Successfully!" onClose={() => setShowSuccess(false)} />}
         {errorMsg && <FailureAnimation message={errorMsg} onClose={() => setErrorMsg('')} />}
 
-        {/* Header */}
         <div className={`p-6 sm:p-8 pb-4 shrink-0 flex justify-between items-start border-b ${borderColor}`}>
           <div className="flex flex-col gap-1">
             <h2 className={`text-3xl font-bold ${textColor} tracking-tight`}>
@@ -248,31 +245,42 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
           </button>
         </div>
 
-        {/* Form */}
         <div className="overflow-y-auto p-6 sm:p-8 custom-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-6">
 
-            {/* Top Row: Title & Mood */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              <div className="flex-1 w-full">
+              <div className="flex-1 w-full relative group">
                 <input
                   type="text"
                   placeholder="Title your memory..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className={`w-full text-2xl font-semibold bg-transparent border-b-2 ${borderColor} px-2 py-3 ${textColor} placeholder:text-[#B8A898] dark:placeholder:text-[#6B6070] focus:outline-none focus:border-[#C4862A] dark:focus:border-[#C9956A] transition-all duration-200`}
-                  style={{ transition: 'border-color 0.2s ease' }}
+                  className={`w-full text-2xl font-semibold bg-transparent px-2 py-3 ${textColor} placeholder:text-[#B8A898] dark:placeholder:text-[#6B6070] focus:outline-none transition-all duration-200 border-none relative z-10`}
                   required
                 />
+                <div className={`absolute bottom-0 left-0 w-full h-[2px] ${isDark ? 'bg-[#2E2940]' : 'bg-[#E8D9C5]'}`} />
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: title ? '100%' : '0%' }}
+                  whileHover={{ width: '100%' }}
+                  className="absolute bottom-0 left-0 h-[2px] bg-[#C4862A] dark:bg-[#C9956A]"
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                />
+                <style>{`
+                  input:focus ~ .focus-line {
+                    width: 100%;
+                  }
+                `}</style>
+                <div className="absolute bottom-0 left-0 h-[2px] bg-[#C4862A] dark:bg-[#C9956A] w-0 transition-all duration-300 ease-out focus-line pointer-events-none" />
               </div>
 
-              {/* Mood Picker */}
               <div className="relative" ref={emojiPickerRef}>
                 <motion.button
                   type="button"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  whileTap={{ scale: 1.1 }}
-                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  whileTap={{ scale: 0.95 }}
+                  animate={{ scale: showEmojiPicker ? [1, 1.1, 1] : 1 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
                   className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${borderColor} ${inputBg} ${textColor} hover:border-[#C4862A] dark:hover:border-[#C9956A] transition-colors min-w-[140px] justify-center`}
                 >
                   {mood ? (
@@ -304,7 +312,6 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
               </div>
             </div>
 
-            {/* Content Textarea */}
             <div className={`relative rounded-3xl p-1`}>
               <textarea
                 placeholder="What's on your mind?..."
@@ -315,17 +322,14 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
               />
             </div>
 
-            {/* Media Controls */}
             <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t ${borderColor}`}>
               <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
-                {/* Photos */}
                 <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-[#5C3A8C]/10 dark:hover:bg-[#7B5EA7]/10 ${textColor} border ${borderColor} hover:border-[#5C3A8C]/30 dark:hover:border-[#7B5EA7]/30 group`}>
                   <Image className="w-5 h-5 group-hover:text-[#5C3A8C] dark:group-hover:text-[#7B5EA7] transition-colors" />
                   <span className="font-medium group-hover:text-[#5C3A8C] dark:group-hover:text-[#7B5EA7]">Photos {photos.length > 0 && `(${photos.length})`}</span>
                   <input type="file" accept="image/*" multiple onChange={handlePhotoChange} className="hidden" />
                 </label>
 
-                {/* Audio */}
                 <button
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
@@ -355,7 +359,6 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                 {audioBlob && <span className="text-xs text-[#C4862A] dark:text-[#E8B86D] bg-[#C4862A]/10 dark:bg-[#E8B86D]/10 px-2 py-1 rounded">Audio Saved</span>}
               </div>
 
-              {/* Action Buttons */}
               <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
                 <button
                   type="button"
@@ -364,11 +367,12 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                 >
                   Cancel
                 </button>
-                <button
+                <motion.button
                   type="submit"
                   disabled={isSaving || showSuccess}
+                  whileTap={!(isSaving || showSuccess) ? { scale: 0.97 } : {}}
                   className={`
-                            px-8 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all transform hover:-translate-y-0.5 active:translate-y-0
+                            px-8 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all transform hover:-translate-y-0.5
                             ${isSaving || showSuccess ? 'bg-[#C9956A]/50 text-white cursor-wait' : 'bg-[#7B3F20] dark:bg-[#C9956A] text-white dark:text-[#0D0D1A] hover:bg-[#5C2E14] dark:hover:bg-[#E8B86D] shadow-[0_4px_20px_rgba(123,63,32,0.35)] dark:shadow-[0_4px_20px_rgba(201,149,106,0.35)]'}
                         `}
                 >
@@ -388,7 +392,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                       <span>{entry ? 'Update' : 'Save'}</span>
                     </>
                   )}
-                </button>
+                </motion.button>
               </div>
             </div>
 

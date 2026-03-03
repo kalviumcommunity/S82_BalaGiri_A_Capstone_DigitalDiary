@@ -131,11 +131,10 @@ exports.requestMagicLink = async (req, res) => {
     const rawToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    // Create new MagicToken
     const newMagicToken = new MagicToken({
       userId: user._id,
       tokenHash: tokenHash,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       used: false
     });
     await newMagicToken.save();
@@ -241,7 +240,6 @@ exports.verifyMagicLogin = async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired magic link' });
     }
 
-    // Mark token as used
     magicTokenMatch.used = true;
     await magicTokenMatch.save();
 

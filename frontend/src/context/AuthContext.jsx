@@ -90,7 +90,6 @@ export const AuthProvider = ({ children }) => {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             await fetch(`${apiUrl}/api/auth/logout`, { method: 'POST' });
         } catch (error) {
-            // console.error('Logout failed', error);
         }
         localStorage.removeItem('token');
         setToken(null);
@@ -127,7 +126,6 @@ export const AuthProvider = ({ children }) => {
             }
         };
 
-        // Reset timer on these events
         const events = ['mousemove', 'keydown', 'click', 'scroll'];
 
         const handleActivity = () => {
@@ -147,7 +145,7 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         try {
             // 1. Derive Password (Hash) for Login
-            const passwordForLogin = await deriveEncryptionKey(password); // Using renamed function
+            const passwordForLogin = await deriveEncryptionKey(password);
 
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             const res = await fetch(`${apiUrl}/api/auth/login`, {
@@ -247,7 +245,7 @@ export const AuthProvider = ({ children }) => {
         user,
         isAuthenticated,
         token,
-        encryptionKey, // Expose renamed key
+        encryptionKey,
         loading,
         login,
         logout,

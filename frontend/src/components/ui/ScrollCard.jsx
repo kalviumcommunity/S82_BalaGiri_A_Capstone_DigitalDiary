@@ -5,10 +5,8 @@ const ScrollCard = ({ children, className = '' }) => {
     const ref = useRef(null);
     const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
 
-    // Parallax tilt on scroll
     const scrollRotateX = useTransform(scrollYProgress, [0, 1], [3, -3]);
 
-    // Mouse tilt values
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
 

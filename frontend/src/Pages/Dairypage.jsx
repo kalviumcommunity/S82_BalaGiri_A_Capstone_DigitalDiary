@@ -84,7 +84,6 @@ function DiaryPage() {
   const { alert, confirm } = useDialog();
   const { logout, user, encryptionKey, unlock, token, isAuthenticated, loading } = useAuth();
 
-  // Protect the route
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       navigate('/');
@@ -194,7 +193,7 @@ function DiaryPage() {
       isMounted = false;
       urlsToRevoke.forEach(u => URL.revokeObjectURL(u));
     };
-  }, [viewEntry, encryptionKey, token]); // Updated dep
+  }, [viewEntry, encryptionKey, token]);
 
   const text = isDark ? 'text-[#F0E6D3]' : 'text-[#1E0F00]';
   const subtext = isDark ? 'text-[#9B8EA0]' : 'text-[#7A6050]';
@@ -436,7 +435,6 @@ function DiaryPage() {
       </nav>
 
       <div className="px-4 md:px-8 max-w-7xl mx-auto relative pb-24">
-        {/* Actions Bar for Filter & Calendar */}
         <div className={`flex justify-between items-center mb-8 ${isDark ? 'bg-[#13111C]/50' : 'bg-white/50'} backdrop-blur-md p-4 rounded-2xl border ${borderColor}`}>
           <h2 className="text-xl font-medium" style={{ color: 'var(--text-muted)' }}>
             {decryptedEntries.length} {decryptedEntries.length === 1 ? 'Entry' : 'Entries'}
@@ -494,7 +492,6 @@ function DiaryPage() {
           </div>
         </div>
 
-        {/* Floating Action Button for New Entry */}
         <motion.button
           onClick={() => {
             setIsNewEntryOpen(true);
@@ -588,7 +585,6 @@ function DiaryPage() {
               >
                 <div className="mb-8 relative">
                   <div className={`p-8 rounded-full ${isDark ? 'bg-[#2E2940]' : 'bg-[#F5ECE0]'}`}>
-                    {/* Subtle pulse on magnifier icon */}
                     <Search className={`w-16 h-16 ${isDark ? 'text-[#C9956A]' : 'text-[#C4862A]'} opacity-80 icon-pulse`} />
                   </div>
                 </div>

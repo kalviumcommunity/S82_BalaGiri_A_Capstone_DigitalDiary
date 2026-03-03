@@ -66,7 +66,6 @@ const HowItWorks = () => {
                             const isEven = index % 2 === 0;
                             return (
                                 <div key={index} className={`relative flex items-center w-full ${isEven ? 'md:flex-row-reverse' : 'md:flex-row'}`}>
-                                    {/* Icon */}
                                     <motion.div
                                         initial={{ scale: 0 }}
                                         whileInView={{ scale: 1 }}
@@ -78,7 +77,6 @@ const HowItWorks = () => {
                                         <step.icon className="w-6 h-6" style={{ color: isDark ? '#C9956A' : '#7B3F20' }} />
                                     </motion.div>
 
-                                    {/* Content Card */}
                                     <motion.div
                                         initial={{ opacity: 0, x: isEven ? 50 : -50 }}
                                         whileInView={{ opacity: 1, x: 0 }}

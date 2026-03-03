@@ -12,8 +12,8 @@ const CursorGlow = () => {
     useEffect(() => {
         const handleMouseMove = (e) => {
             setMousePosition({ x: e.clientX, y: e.clientY });
-            cursorX.set(e.clientX - 200); // Offset by half the width to center the glow
-            cursorY.set(e.clientY - 200); // Offset by half the height
+            cursorX.set(e.clientX - 200);
+            cursorY.set(e.clientY - 200);
         };
 
         window.addEventListener('mousemove', handleMouseMove);

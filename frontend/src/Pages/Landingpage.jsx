@@ -18,7 +18,6 @@ const LandingPage = ({ onLoadingChange }) => {
     if (onLoadingChange) onLoadingChange(false);
   };
 
-  // Prevent scrolling while loading
   useEffect(() => {
     if (loading) {
       document.body.style.overflow = 'hidden';

@@ -13,7 +13,6 @@ export const useCardTilt = (config = {}) => {
         const centerX = box.width / 2;
         const centerY = box.height / 2;
 
-        // Calculate rotation percentage based on distance from center
         const rotateX = ((y - centerY) / centerY) * -maxTilt;
         const rotateY = ((x - centerX) / centerX) * maxTilt;
 

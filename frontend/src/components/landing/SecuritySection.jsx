@@ -37,7 +37,6 @@ const SecuritySection = () => {
             <div className="container mx-auto px-6 max-w-6xl">
                 <div className="flex flex-col lg:flex-row items-center gap-16 relative z-10">
 
-                    {/* Left Text */}
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
                         whileInView={{ opacity: 1, x: 0 }}
@@ -57,7 +56,6 @@ const SecuritySection = () => {
                         />
                     </motion.div>
 
-                    {/* Right Badges */}
                     <div className="lg:w-1/2 flex flex-col sm:grid sm:grid-cols-2 gap-6 relative">
                         {badges.map((badge, index) => (
                             <motion.div

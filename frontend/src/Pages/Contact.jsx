@@ -8,7 +8,6 @@ function Contact() {
 
   return (
     <div className="min-h-screen px-6 pt-32 pb-20 flex justify-center items-center transition-colors duration-300">
-      {/* Center card: scale 0.96→1 + fade on load */}
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -41,7 +40,6 @@ function Contact() {
         </div>
 
         <div className="space-y-4">
-          {/* GitHub button — hover lift 3px + subtle shadow */}
           <motion.a
             whileHover={{ y: -3, boxShadow: '0 8px 24px var(--shadow-color)' }}
             whileTap={{ scale: 0.98 }}
@@ -57,7 +55,6 @@ function Contact() {
           >
             <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300 bg-[var(--color-highlight)]"></div>
             <span className="text-xs uppercase tracking-wider block mb-1 text-[var(--text-primary)] opacity-80">Check out my work</span>
-            {/* Link text — color transition 0.2s */}
             <span
               className="font-semibold text-lg transition-colors duration-200"
               style={{ color: 'var(--color-highlight)' }}
@@ -66,7 +63,6 @@ function Contact() {
             </span>
           </motion.a>
 
-          {/* Email button */}
           <motion.a
             whileHover={{ y: -3, boxShadow: '0 8px 24px var(--shadow-color)' }}
             whileTap={{ scale: 0.98 }}

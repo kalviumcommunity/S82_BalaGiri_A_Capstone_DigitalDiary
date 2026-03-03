@@ -4,9 +4,9 @@ const { signup, loginUser, requestMagicLink, verifyMagicLogin, verifyMagicLink, 
 
 router.post('/signup', signup);
 router.post('/login', loginUser);
-router.post('/magic-link', requestMagicLink); // keeping the endpoint to request the link the same
-router.post('/magic-login', verifyMagicLogin); // new verification endpoint as requested
-router.post('/verify-link', verifyMagicLink); // old endpoint
+router.post('/magic-link', requestMagicLink);
+router.post('/magic-login', verifyMagicLogin);
+router.post('/verify-link', verifyMagicLink);
 router.post('/reset-password-recovery', resetPasswordRecovery);
 router.post('/recovery-metadata', getRecoveryMetadata);
 router.get('/me', getMe);

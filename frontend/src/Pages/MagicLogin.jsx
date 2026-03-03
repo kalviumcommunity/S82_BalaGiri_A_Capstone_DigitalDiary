@@ -8,7 +8,6 @@ const MagicLogin = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
-    // States
     const [status, setStatus] = useState('Verifying Magic Link...');
     const [stage, setStage] = useState('verifying'); // 'verifying', 'unlocking', 'error'
     const [password, setPassword] = useState('');
@@ -42,10 +41,9 @@ const MagicLogin = () => {
                 const data = await res.json();
 
                 if (res.ok && data.token && data.user) {
-                    // Receive JWT, Store JWT (handled by magicLoginSuccess)
                     magicLoginSuccess(data.token, data.user);
                     setStatus("Login successful!");
-                    setStage('unlocking'); // Move to derivation stage
+                    setStage('unlocking');
                 } else {
                     setStatus(data.message || "Verification failed");
                     setStage('error');
@@ -69,7 +67,6 @@ const MagicLogin = () => {
 
         try {
             await unlock(password);
-            // After derivation, navigate to /diary
             navigate('/diary');
         } catch (err) {
             setErrorMsg(err.message || 'Failed to unlock diary');

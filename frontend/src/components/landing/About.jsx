@@ -22,7 +22,6 @@ const About = () => {
     >
       <div className="max-w-4xl mx-auto px-6 relative z-10 flex flex-col items-center text-center">
 
-        {/* Decorative Quotation Mark */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           whileInView={{ opacity: 0.1, scale: 1 }}

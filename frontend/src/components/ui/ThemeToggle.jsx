@@ -19,10 +19,10 @@ const ThemeToggle = () => {
                     {theme === 'light' ? (
                         <motion.div
                             key="moon"
-                            initial={{ rotate: -90, opacity: 0 }}
+                            initial={{ rotate: -180, opacity: 0 }}
                             animate={{ rotate: 0, opacity: 1 }}
-                            exit={{ rotate: 90, opacity: 0 }}
-                            transition={{ duration: 0.3 }}
+                            exit={{ rotate: 180, opacity: 0 }}
+                            transition={{ duration: 0.4 }}
                             className="absolute"
                         >
                             <Moon className="w-5 h-5 text-[#5C3A8C]" />
@@ -30,10 +30,10 @@ const ThemeToggle = () => {
                     ) : (
                         <motion.div
                             key="sun"
-                            initial={{ rotate: 90, opacity: 0 }}
+                            initial={{ rotate: 180, opacity: 0 }}
                             animate={{ rotate: 0, opacity: 1 }}
-                            exit={{ rotate: -90, opacity: 0 }}
-                            transition={{ duration: 0.3 }}
+                            exit={{ rotate: -180, opacity: 0 }}
+                            transition={{ duration: 0.4 }}
                             className="absolute"
                         >
                             <Sun className="w-5 h-5 text-[#E8B86D]" />

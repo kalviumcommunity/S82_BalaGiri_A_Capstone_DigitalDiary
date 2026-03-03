@@ -36,13 +36,11 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Track if the landing page preloader is running
   const [isPageLoading, setIsPageLoading] = useState(location.pathname === '/' ? true : false);
 
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState('');
 
-  // Navbar scroll reactivity
   const [isScrolled, setIsScrolled] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
@@ -129,7 +127,6 @@ function App() {
         </motion.nav>
       )}
 
-      {/* Main Content Area */}
       <div className={`${location.pathname !== '/diary' && !isPageLoading ? 'pt-32' : ''} relative z-10 w-full min-h-screen`}>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
