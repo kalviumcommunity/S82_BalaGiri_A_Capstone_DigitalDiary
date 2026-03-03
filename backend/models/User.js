@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema({
     encryptedMasterKey: { type: String },
     masterKeyIV: { type: String },
 
+    recoveryEncryptedMasterKey: { type: String },
+    recoveryMasterKeyIV: { type: String },
+    recoverySalt: { type: String },
+
     encryptionVersion: { type: Number, default: 1 },
 
     magicLinkToken: { type: String },

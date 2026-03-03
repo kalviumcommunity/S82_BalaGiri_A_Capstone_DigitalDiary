@@ -12,6 +12,7 @@ import Contact from './Pages/Contact';
 import About from './Pages/About';
 import VerifyLogin from './Pages/VerifyLogin';
 import MagicLogin from './Pages/MagicLogin';
+import RecoverAccount from './Pages/RecoverAccount';
 import SuccessAnimation from './components/SuccessAnimation';
 import GlobalDialog from './components/GlobalDialog';
 import { useAuth } from './context/AuthContext';
@@ -34,6 +35,9 @@ function App() {
   const { isAuthenticated, isUnlocked, unlock } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Track if the landing page preloader is running
+  const [isPageLoading, setIsPageLoading] = useState(location.pathname === '/' ? true : false);
 
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState('');
@@ -71,14 +75,16 @@ function App() {
   useEffect(() => {
     if (location.state?.openLogin) {
       setShowLogin(true);
+      // Clean up state so refresh doesn't trigger modal again
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state]);
+  }, [location.state, navigate]);
 
   return (
     <div className="min-h-screen overflow-hidden relative">
-      <GlobalBackground />
+      {!isPageLoading && <GlobalBackground />}
 
-      {location.pathname !== '/diary' && (
+      {!isPageLoading && location.pathname !== '/diary' && (
         <motion.nav
           className="absolute top-0 w-full z-50 p-6 flex justify-center"
           initial={false}
@@ -122,10 +128,10 @@ function App() {
       )}
 
       {/* Main Content Area */}
-      <div className={`${location.pathname !== '/diary' ? 'pt-32' : ''} relative z-10 w-full min-h-screen`}>
+      <div className={`${location.pathname !== '/diary' && !isPageLoading ? 'pt-32' : ''} relative z-10 w-full min-h-screen`}>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<PageTransition><LandingPage setShowLogin={setShowLogin} /></PageTransition>} />
+            <Route path="/" element={<PageTransition><LandingPage setShowLogin={setShowLogin} onLoadingChange={setIsPageLoading} /></PageTransition>} />
             <Route path="/diary" element={
               <ProtectedRoute>
                 <PageTransition><DiaryPage isDark={isDark} /></PageTransition>
@@ -137,6 +143,7 @@ function App() {
             <Route path="/about" element={<PageTransition><About isDark={isDark} /></PageTransition>} />
             <Route path="/verify-login" element={<PageTransition><VerifyLogin /></PageTransition>} />
             <Route path="/magic-login" element={<PageTransition><MagicLogin /></PageTransition>} />
+            <Route path="/recover" element={<PageTransition><RecoverAccount /></PageTransition>} />
           </Routes>
         </AnimatePresence>
       </div>

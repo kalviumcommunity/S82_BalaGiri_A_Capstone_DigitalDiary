@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Unlock, Loader } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 const UnlockModal = ({ onUnlock, error, isUnlocking }) => {
     const [password, setPassword] = useState('');
@@ -65,6 +66,11 @@ const UnlockModal = ({ onUnlock, error, isUnlocking }) => {
                             </>
                         )}
                     </button>
+                    <div className="mt-4 pt-2 border-t border-[#2E2940] flex justify-center">
+                        <Link to="/recover" className="text-sm text-[#C9956A] hover:text-[#E8B86D] underline">
+                            Forgot Password? Use Recovery Key
+                        </Link>
+                    </div>
                 </form>
             </motion.div>
         </div>

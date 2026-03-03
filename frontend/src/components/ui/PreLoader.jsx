@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
 
@@ -6,6 +6,34 @@ const PreLoader = ({ onComplete }) => {
     const [typedText, setTypedText] = useState('');
     const [isExiting, setIsExiting] = useState(false);
     const fullText = 'Digital Diary';
+
+    // Read theme synchronously from localStorage to avoid any flash
+    const isDark = useMemo(() => {
+        try {
+            return (localStorage.getItem('theme') || 'dark') === 'dark';
+        } catch {
+            return true;
+        }
+    }, []);
+
+    // Theme-matched colors
+    const colors = isDark
+        ? {
+            bg: '#0D0D1A',
+            glowOrb: 'rgba(201, 149, 106, 0.08)',
+            primary: '#C9956A',
+            text: '#F0E6D3',
+            subtext: 'rgba(240, 230, 211, 0.6)',
+            particle: 'rgba(201, 149, 106, 0.4)',
+        }
+        : {
+            bg: '#FAF3E8',
+            glowOrb: 'rgba(123, 63, 32, 0.07)',
+            primary: '#7B3F20',
+            text: '#1E0F00',
+            subtext: 'rgba(30, 15, 0, 0.55)',
+            particle: 'rgba(123, 63, 32, 0.25)',
+        };
 
     useEffect(() => {
         let timeout;
@@ -20,70 +48,92 @@ const PreLoader = ({ onComplete }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             setIsExiting(true);
-            setTimeout(() => onComplete(), 800);
+            setTimeout(() => onComplete(), 700);
         }, 2500);
         return () => clearTimeout(timer);
     }, [onComplete]);
+
+    // Generate particles once so they don't re-randomise on each render
+    const particles = useMemo(() =>
+        Array.from({ length: 18 }, (_, i) => ({
+            id: i,
+            x: Math.random() * window.innerWidth - window.innerWidth / 2,
+            y: Math.random() * window.innerHeight - window.innerHeight / 2,
+            floatY: Math.random() * -180,
+            duration: Math.random() * 2 + 2.5,
+            delay: Math.random() * 2,
+            scale: Math.random() * 1.5 + 0.8,
+        })), []);
 
     return (
         <AnimatePresence>
             {!isExiting && (
                 <motion.div
-                    className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-theme-bg overflow-hidden"
-                    initial={{ opacity: 1 }}
-                    exit={{ opacity: 0, scale: 1.1 }}
-                    transition={{ duration: 0.8, ease: 'easeInOut' }}
+                    className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden"
+                    style={{ backgroundColor: colors.bg }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.45, ease: 'easeInOut' }}
                 >
-                    {/* Particle effect using simple CSS/Framer motion */}
-                    {[...Array(20)].map((_, i) => (
+                    {/* Floating particles — theme-aware */}
+                    {particles.map((p) => (
                         <motion.div
-                            key={i}
-                            className="absolute w-2 h-2 rounded-full bg-theme-primary/20"
-                            initial={{
-                                x: Math.random() * window.innerWidth - window.innerWidth / 2,
-                                y: Math.random() * window.innerHeight - window.innerHeight / 2,
-                                scale: 0,
-                            }}
+                            key={p.id}
+                            className="absolute w-2 h-2 rounded-full pointer-events-none"
+                            style={{ background: colors.particle }}
+                            initial={{ x: p.x, y: p.y, scale: 0, opacity: 0 }}
                             animate={{
-                                y: [null, Math.random() * -200],
-                                opacity: [0, 1, 0],
-                                scale: [0, Math.random() * 2 + 1, 0],
+                                y: [p.y, p.y + p.floatY],
+                                opacity: [0, 0.8, 0],
+                                scale: [0, p.scale, 0],
                             }}
                             transition={{
-                                duration: Math.random() * 2 + 2,
+                                duration: p.duration,
                                 repeat: Infinity,
-                                delay: Math.random() * 2,
+                                delay: p.delay,
                             }}
                         />
                     ))}
 
+                    {/* Soft radial glow blob — no more dark circle */}
                     <motion.div
-                        className="absolute rounded-full bg-theme-card opacity-30 blur-3xl pointer-events-none"
-                        initial={{ width: 0, height: 0 }}
-                        animate={{ width: '150vw', height: '150vw' }}
-                        transition={{ duration: 3, ease: 'easeOut' }}
+                        className="absolute rounded-full pointer-events-none blur-3xl"
+                        style={{ background: `radial-gradient(circle, ${colors.glowOrb}, transparent 70%)` }}
+                        initial={{ width: 0, height: 0, opacity: 0 }}
+                        animate={{ width: '90vw', height: '90vw', opacity: 1 }}
+                        transition={{ duration: 2.5, ease: 'easeOut' }}
                     />
 
+                    {/* Main content */}
                     <div className="relative z-10 flex flex-col items-center">
                         <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
+                            initial={{ scale: 0.75, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.8 }}
+                            transition={{ duration: 0.7, ease: 'easeOut' }}
                         >
-                            <BookOpen className="w-16 h-16 text-theme-primary mb-6 animate-pulse" />
+                            <BookOpen
+                                className="w-16 h-16 mb-6"
+                                style={{ color: colors.primary }}
+                            />
                         </motion.div>
 
-                        <h1 className="text-4xl md:text-5xl font-bold text-theme-text tracking-wider mb-3 flex items-center">
+                        <h1
+                            className="text-4xl md:text-5xl font-bold tracking-wider mb-3 flex items-center"
+                            style={{ color: colors.text }}
+                        >
                             {typedText}
                             <motion.span
                                 animate={{ opacity: [1, 0] }}
-                                transition={{ repeat: Infinity, duration: 0.8 }}
-                                className="inline-block w-[3px] h-10 ml-1 bg-theme-primary"
+                                transition={{ repeat: Infinity, duration: 0.75 }}
+                                className="inline-block w-[3px] h-10 ml-1"
+                                style={{ background: colors.primary }}
                             />
                         </h1>
 
                         <motion.p
-                            className="text-theme-text opacity-70 tracking-widest text-sm uppercase"
+                            className="tracking-widest text-sm uppercase"
+                            style={{ color: colors.subtext }}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 1.5, duration: 0.8 }}

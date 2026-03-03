@@ -7,7 +7,7 @@ const { sendMagicLinkEmail } = require('../utils/emailService');
 
 exports.signup = async (req, res) => {
   try {
-    const { username, email, password, kdfSalt, validatorHash, encryptedMasterKey, masterKeyIV } = req.body;
+    const { username, email, password, kdfSalt, validatorHash, encryptedMasterKey, masterKeyIV, recoveryEncryptedMasterKey, recoveryMasterKeyIV, recoverySalt } = req.body;
 
 
 
@@ -28,6 +28,9 @@ exports.signup = async (req, res) => {
       validatorHash,
       encryptedMasterKey,
       masterKeyIV,
+      recoveryEncryptedMasterKey,
+      recoveryMasterKeyIV,
+      recoverySalt,
       encryptionVersion: 1
     });
 
@@ -58,7 +61,10 @@ exports.signup = async (req, res) => {
         kdfIterations: newUser.kdfIterations,
         validatorHash: newUser.validatorHash,
         encryptedMasterKey: newUser.encryptedMasterKey,
-        masterKeyIV: newUser.masterKeyIV
+        masterKeyIV: newUser.masterKeyIV,
+        recoveryEncryptedMasterKey: newUser.recoveryEncryptedMasterKey,
+        recoveryMasterKeyIV: newUser.recoveryMasterKeyIV,
+        recoverySalt: newUser.recoverySalt
       }
     });
 
@@ -101,7 +107,10 @@ exports.loginUser = async (req, res) => {
         kdfIterations: user.kdfIterations,
         validatorHash: user.validatorHash,
         encryptedMasterKey: user.encryptedMasterKey,
-        masterKeyIV: user.masterKeyIV
+        masterKeyIV: user.masterKeyIV,
+        recoveryEncryptedMasterKey: user.recoveryEncryptedMasterKey,
+        recoveryMasterKeyIV: user.recoveryMasterKeyIV,
+        recoverySalt: user.recoverySalt
       }
     });
   } catch (err) {
@@ -140,6 +149,80 @@ exports.requestMagicLink = async (req, res) => {
   } catch (err) {
     console.error('[Auth] Error:', err);
     res.status(500).json({ message: 'Error sending magic link.' });
+  }
+};
+
+exports.getRecoveryMetadata = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (!user.recoveryEncryptedMasterKey) {
+      return res.status(400).json({ message: 'This account does not have a recovery key setup.' });
+    }
+
+    res.status(200).json({
+      recoveryEncryptedMasterKey: user.recoveryEncryptedMasterKey,
+      recoveryMasterKeyIV: user.recoveryMasterKeyIV,
+      recoverySalt: user.recoverySalt
+    });
+  } catch (err) {
+    console.error('getRecoveryMetadata error:', err);
+    res.status(500).json({ message: 'Server error fetching recovery details' });
+  }
+};
+
+exports.resetPasswordRecovery = async (req, res) => {
+  const { email, password, kdfSalt, validatorHash, encryptedMasterKey, masterKeyIV } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    user.password = hashedPassword;
+    user.kdfSalt = kdfSalt;
+    user.validatorHash = validatorHash;
+    user.encryptedMasterKey = encryptedMasterKey;
+    user.masterKeyIV = masterKeyIV;
+
+    await user.save();
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 3600000
+    });
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        kdfSalt: user.kdfSalt,
+        kdfIterations: user.kdfIterations,
+        validatorHash: user.validatorHash,
+        encryptedMasterKey: user.encryptedMasterKey,
+        masterKeyIV: user.masterKeyIV,
+        recoveryEncryptedMasterKey: user.recoveryEncryptedMasterKey,
+        recoveryMasterKeyIV: user.recoveryMasterKeyIV,
+        recoverySalt: user.recoverySalt
+      }
+    });
+  } catch (err) {
+    console.error('Reset Password Error:', err);
+    res.status(500).json({ message: 'Error resetting password' });
   }
 };
 
@@ -187,7 +270,10 @@ exports.verifyMagicLogin = async (req, res) => {
         kdfIterations: user.kdfIterations,
         validatorHash: user.validatorHash,
         encryptedMasterKey: user.encryptedMasterKey,
-        masterKeyIV: user.masterKeyIV
+        masterKeyIV: user.masterKeyIV,
+        recoveryEncryptedMasterKey: user.recoveryEncryptedMasterKey,
+        recoveryMasterKeyIV: user.recoveryMasterKeyIV,
+        recoverySalt: user.recoverySalt
       }
     });
 
@@ -226,7 +312,10 @@ exports.verifyMagicLink = async (req, res) => {
         kdfIterations: user.kdfIterations,
         validatorHash: user.validatorHash,
         encryptedMasterKey: user.encryptedMasterKey,
-        masterKeyIV: user.masterKeyIV
+        masterKeyIV: user.masterKeyIV,
+        recoveryEncryptedMasterKey: user.recoveryEncryptedMasterKey,
+        recoveryMasterKeyIV: user.recoveryMasterKeyIV,
+        recoverySalt: user.recoverySalt
       }
     });
 
@@ -267,7 +356,10 @@ exports.getMe = async (req, res) => {
           kdfIterations: user.kdfIterations,
           validatorHash: user.validatorHash,
           encryptedMasterKey: user.encryptedMasterKey,
-          masterKeyIV: user.masterKeyIV
+          masterKeyIV: user.masterKeyIV,
+          recoveryEncryptedMasterKey: user.recoveryEncryptedMasterKey,
+          recoveryMasterKeyIV: user.recoveryMasterKeyIV,
+          recoverySalt: user.recoverySalt
         }
       });
     } catch (e) {
