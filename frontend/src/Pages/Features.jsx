@@ -3,6 +3,19 @@ import { motion } from 'framer-motion';
 import { Lock, Shield, Image as LucideImage, Calendar, Archive, Cloud } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      delay: i * 0.1,
+      ease: 'easeOut',
+    },
+  }),
+};
+
 const FeatureCard = ({ icon: Icon, title, description, index }) => {
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -14,10 +27,15 @@ const FeatureCard = ({ icon: Icon, title, description, index }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, delay: index * 0.08 }}
+      custom={index}
+      variants={cardVariants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-50px' }}
+      whileHover={{
+        y: -6,
+        transition: { duration: 0.25, ease: 'easeOut' },
+      }}
       onMouseMove={handleMouseMove}
       className="group relative h-full flex flex-col p-8 overflow-hidden rounded-[16px] border transition-colors duration-300 shadow-sm"
       style={{
@@ -32,15 +50,16 @@ const FeatureCard = ({ icon: Icon, title, description, index }) => {
           background: `radial-gradient(300px circle at var(--mouse-x, 0) var(--mouse-y, 0), var(--shadow-color), transparent 70%)`,
         }}
       />
-      {/* Shimmer on hover pseudo-element effect can be handled by the spotlight or an additional overlay */}
 
       <div className="relative z-10">
-        <div
+        <motion.div
           className="w-12 h-12 rounded-xl flex items-center justify-center mb-6 shadow-sm border"
           style={{ background: 'var(--color-card-bg)', borderColor: 'var(--color-border)' }}
+          whileHover={{ scale: 1.08 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
         >
           <Icon className="w-6 h-6" style={{ color: 'var(--color-primary)' }} />
-        </div>
+        </motion.div>
         <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-3">
           {title}
         </h3>
@@ -54,7 +73,6 @@ const FeatureCard = ({ icon: Icon, title, description, index }) => {
 
 function Features() {
   const { theme } = useTheme();
-  // We can keep useTheme if needed for specific logic, but CSS vars handle the styling
 
   const features = [
     { icon: Lock, title: 'End-to-End Encryption', desc: 'Your words are encrypted the moment you type them. We built this so even WE cannot read your diary.' },
@@ -78,17 +96,18 @@ function Features() {
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
             className="text-sm font-bold uppercase tracking-widest mb-4"
             style={{ color: 'var(--color-primary)' }}
           >
             WHAT MAKES IT DIFFERENT
           </motion.p>
           <motion.h2
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.8 }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.6, delay: 0.08, ease: 'easeOut' }}
             className="text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-6 drop-shadow-sm"
           >
             Built for Privacy. Designed for Memory.
@@ -96,8 +115,8 @@ function Features() {
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.5, delay: 0.18, ease: 'easeOut' }}
             className="text-lg md:text-xl text-[var(--text-muted)]"
           >
             Every feature exists to protect your story while making it effortless to tell.

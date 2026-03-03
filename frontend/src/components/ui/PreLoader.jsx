@@ -2,10 +2,13 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
 
+// Defined outside component so it's stable and never changes between renders
+const FULL_TEXT = 'Digital Diary';
+
 const PreLoader = ({ onComplete }) => {
     const [typedText, setTypedText] = useState('');
     const [isExiting, setIsExiting] = useState(false);
-    const fullText = 'Digital Diary';
+    const isDoneTyping = typedText.length === FULL_TEXT.length;
 
     // Read theme synchronously from localStorage to avoid any flash
     const isDark = useMemo(() => {
@@ -35,15 +38,14 @@ const PreLoader = ({ onComplete }) => {
             particle: 'rgba(123, 63, 32, 0.25)',
         };
 
+    // Type one character every 100ms until the full text is shown
     useEffect(() => {
-        let timeout;
-        if (typedText.length < fullText.length) {
-            timeout = setTimeout(() => {
-                setTypedText(fullText.slice(0, typedText.length + 1));
-            }, 100);
-        }
+        if (typedText.length >= FULL_TEXT.length) return;
+        const timeout = setTimeout(() => {
+            setTypedText(FULL_TEXT.slice(0, typedText.length + 1));
+        }, 100);
         return () => clearTimeout(timeout);
-    }, [typedText]);
+    }, [typedText]);  // FULL_TEXT is module-level constant, no need in deps
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -123,12 +125,15 @@ const PreLoader = ({ onComplete }) => {
                             style={{ color: colors.text }}
                         >
                             {typedText}
-                            <motion.span
-                                animate={{ opacity: [1, 0] }}
-                                transition={{ repeat: Infinity, duration: 0.75 }}
-                                className="inline-block w-[3px] h-10 ml-1"
-                                style={{ background: colors.primary }}
-                            />
+                            {/* Cursor blinks while typing, disappears once done */}
+                            {!isDoneTyping && (
+                                <motion.span
+                                    animate={{ opacity: [1, 0] }}
+                                    transition={{ repeat: Infinity, duration: 0.75 }}
+                                    className="inline-block w-[3px] h-10 ml-1"
+                                    style={{ background: colors.primary }}
+                                />
+                            )}
                         </h1>
 
                         <motion.p

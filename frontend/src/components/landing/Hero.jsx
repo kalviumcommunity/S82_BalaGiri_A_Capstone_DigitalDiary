@@ -167,189 +167,195 @@ const DiaryBook = ({ isDark }) => {
 
 
     return (
+        /* ── Floating wrapper — translateY only, no rotation, no layout shift ── */
         <div
-            onClick={runCycle}
-            style={{
-                position: 'relative',
-                width: '290px', height: '390px',
-                perspective: '1400px',
-                cursor: phase === 'idle' ? 'pointer' : 'default',
-                userSelect: 'none',
-            }}
+            className="diary-float"
+            style={{ display: 'inline-block' }}
         >
-            {/* Ground glow */}
-            <motion.div
-                animate={{ opacity: coverOpen ? 0.65 : 0.35, scaleX: coverOpen ? 1.2 : 1 }}
-                transition={{ duration: 0.6 }}
+            <div
+                onClick={runCycle}
                 style={{
-                    position: 'absolute', bottom: '-26px',
-                    left: '50%', transform: 'translateX(-50%)',
-                    width: '210px', height: '28px',
-                    borderRadius: '50%',
-                    background: c.groundGlow,
-                    filter: 'blur(10px)',
-                    pointerEvents: 'none',
-                }}
-            />
-
-            {/* Back cover depth */}
-            <div style={{
-                position: 'absolute',
-                top: '10px', left: '8px',
-                width: '262px', height: '374px',
-                background: c.backPanel,
-                borderRadius: '13px',
-                zIndex: 0,
-            }} />
-
-            {/* Stacked page-edge strips (right side) */}
-            {c.pageEdge.map((bg, i) => (
-                <div key={i} style={{
-                    position: 'absolute',
-                    right: `${-1 - i * 2}px`,
-                    top: '10px', bottom: '10px',
-                    width: '7px',
-                    background: bg,
-                    borderRadius: '0 4px 4px 0',
-                    zIndex: 1,
-                }} />
-            ))}
-
-            {/* Pages container — behind cover */}
-            <div style={{
-                position: 'absolute', inset: 0,
-                zIndex: 2,
-                transformStyle: 'preserve-3d',
-            }}>
-                {PAGES.map((page, index) => (
-                    <Page
-                        key={page.id}
-                        page={page}
-                        index={index}
-                        flipped={index < flippedCount}
-                        total={PAGES.length}
-                    />
-                ))}
-            </div>
-
-            {/* ── COVER — flips first (open), closes last ── */}
-            <motion.div
-                animate={{ rotateY: coverOpen ? -178 : 0 }}
-                transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-                style={{
-                    position: 'absolute', inset: 0,
-                    transformOrigin: 'left center',
-                    transformStyle: 'preserve-3d',
-                    zIndex: 20,
+                    position: 'relative',
+                    width: '290px', height: '390px',
+                    perspective: '1400px',
+                    cursor: phase === 'idle' ? 'pointer' : 'default',
+                    userSelect: 'none',
                 }}
             >
-                {/* Cover front */}
+                {/* Ground glow */}
+                <motion.div
+                    animate={{ opacity: coverOpen ? 0.65 : 0.35, scaleX: coverOpen ? 1.2 : 1 }}
+                    transition={{ duration: 0.6 }}
+                    style={{
+                        position: 'absolute', bottom: '-26px',
+                        left: '50%', transform: 'translateX(-50%)',
+                        width: '210px', height: '28px',
+                        borderRadius: '50%',
+                        background: c.groundGlow,
+                        filter: 'blur(10px)',
+                        pointerEvents: 'none',
+                    }}
+                />
+
+                {/* Back cover depth */}
                 <div style={{
-                    position: 'absolute', inset: 0,
-                    background: c.cover,
-                    border: `2px solid ${c.border}`,
-                    borderRadius: '12px',
-                    backfaceVisibility: 'hidden',
-                    boxShadow: c.shadow,
-                    overflow: 'hidden',
-                }}>
-                    {/* Sheen */}
-                    <div style={{ position: 'absolute', inset: 0, background: c.coverSheen, pointerEvents: 'none' }} />
+                    position: 'absolute',
+                    top: '10px', left: '8px',
+                    width: '262px', height: '374px',
+                    background: c.backPanel,
+                    borderRadius: '13px',
+                    zIndex: 0,
+                }} />
 
-                    {/* Spine */}
-                    <div style={{
-                        position: 'absolute', left: 0, top: 0, bottom: 0, width: '22px',
-                        background: c.spine,
-                        borderRadius: '10px 0 0 10px',
-                        boxShadow: '3px 0 14px rgba(0,0,0,0.5)',
-                        zIndex: 2,
-                    }} />
-
-                    {/* Content area */}
-                    <div style={{
+                {/* Stacked page-edge strips (right side) */}
+                {c.pageEdge.map((bg, i) => (
+                    <div key={i} style={{
                         position: 'absolute',
-                        left: '22px', right: 0, top: 0, bottom: 0,
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center',
-                        padding: '24px 18px',
-                        gap: '18px',
-                    }}>
-                        {/* Top ruled lines */}
-                        <div style={{ position: 'absolute', top: '14%', left: '12%', right: '12%', display: 'flex', flexDirection: 'column', gap: '11px', opacity: 0.55 }}>
-                            {[...Array(3)].map((_, i) => <div key={i} style={{ height: '1px', background: c.groove }} />)}
-                        </div>
+                        right: `${-1 - i * 2}px`,
+                        top: '10px', bottom: '10px',
+                        width: '7px',
+                        background: bg,
+                        borderRadius: '0 4px 4px 0',
+                        zIndex: 1,
+                    }} />
+                ))}
 
-                        <BookHeart style={{
-                            width: '60px', height: '60px', color: c.primary, strokeWidth: 2.2,
-                            filter: isDark
-                                ? 'drop-shadow(0 0 12px rgba(201,149,106,0.5))'
-                                : 'drop-shadow(0 3px 8px rgba(0,0,0,0.35))',
-                        }} />
-
-                        {/* Lock badge */}
-                        <div style={{
-                            width: '50px', height: '50px', borderRadius: '50%',
-                            border: `2px solid ${c.lockBorder}`,
-                            background: c.lockBg,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: isDark
-                                ? '0 4px 18px rgba(201,149,106,0.3)'
-                                : '0 4px 14px rgba(0,0,0,0.3)',
-                        }}>
-                            <Lock style={{ width: '22px', height: '22px', color: c.primary }} />
-                        </div>
-
-                        {/* Bottom ruled lines */}
-                        <div style={{ position: 'absolute', bottom: '14%', left: '12%', right: '12%', display: 'flex', flexDirection: 'column', gap: '11px', opacity: 0.55 }}>
-                            {[...Array(2)].map((_, i) => <div key={i} style={{ height: '1px', background: c.groove }} />)}
-                        </div>
-
-                        {/* Right edge pages illusion */}
-                        <div style={{
-                            position: 'absolute', right: 0, top: '10px', bottom: '10px', width: '5px',
-                            background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(160,98,42,0.3)',
-                            borderRadius: '0 3px 3px 0',
-                        }} />
-                    </div>
-                </div>
-
-                {/* Cover inside face */}
+                {/* Pages container — behind cover */}
                 <div style={{
                     position: 'absolute', inset: 0,
-                    background: '#F8EDD8',
-                    borderRadius: '12px',
-                    backfaceVisibility: 'hidden',
-                    transform: 'rotateY(180deg)',
-                    overflow: 'hidden',
-                    padding: '24px 20px',
-                    display: 'flex', flexDirection: 'column', gap: '10px',
+                    zIndex: 2,
+                    transformStyle: 'preserve-3d',
                 }}>
-                    {Array.from({ length: 13 }, (_, i) => (
-                        <div key={i} style={{ height: '1px', background: 'rgba(123,63,32,0.13)', width: i % 4 === 3 ? '58%' : '100%' }} />
+                    {PAGES.map((page, index) => (
+                        <Page
+                            key={page.id}
+                            page={page}
+                            index={index}
+                            flipped={index < flippedCount}
+                            total={PAGES.length}
+                        />
                     ))}
                 </div>
-            </motion.div>
 
-            {/* Hint label */}
-            <AnimatePresence mode="wait">
-                {phase === 'idle' && (
-                    <motion.p key="hint"
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ delay: 0.8, duration: 0.5 }}
-                        style={{
+                {/* ── COVER — flips first (open), closes last ── */}
+                <motion.div
+                    animate={{ rotateY: coverOpen ? -178 : 0 }}
+                    transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+                    style={{
+                        position: 'absolute', inset: 0,
+                        transformOrigin: 'left center',
+                        transformStyle: 'preserve-3d',
+                        zIndex: 20,
+                    }}
+                >
+                    {/* Cover front */}
+                    <div style={{
+                        position: 'absolute', inset: 0,
+                        background: c.cover,
+                        border: `2px solid ${c.border}`,
+                        borderRadius: '12px',
+                        backfaceVisibility: 'hidden',
+                        boxShadow: c.shadow,
+                        overflow: 'hidden',
+                    }}>
+                        {/* Sheen */}
+                        <div style={{ position: 'absolute', inset: 0, background: c.coverSheen, pointerEvents: 'none' }} />
+
+                        {/* Spine */}
+                        <div style={{
+                            position: 'absolute', left: 0, top: 0, bottom: 0, width: '22px',
+                            background: c.spine,
+                            borderRadius: '10px 0 0 10px',
+                            boxShadow: '3px 0 14px rgba(0,0,0,0.5)',
+                            zIndex: 2,
+                        }} />
+
+                        {/* Content area */}
+                        <div style={{
                             position: 'absolute',
-                            bottom: '-46px', left: '50%', transform: 'translateX(-50%)',
-                            whiteSpace: 'nowrap', color: c.hint,
-                            fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase',
-                            pointerEvents: 'none',
-                        }}
-                    >
-                        ↑ Click to open
-                    </motion.p>
-                )}
-            </AnimatePresence>
+                            left: '22px', right: 0, top: 0, bottom: 0,
+                            display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center',
+                            padding: '24px 18px',
+                            gap: '18px',
+                        }}>
+                            {/* Top ruled lines */}
+                            <div style={{ position: 'absolute', top: '14%', left: '12%', right: '12%', display: 'flex', flexDirection: 'column', gap: '11px', opacity: 0.55 }}>
+                                {[...Array(3)].map((_, i) => <div key={i} style={{ height: '1px', background: c.groove }} />)}
+                            </div>
+
+                            <BookHeart style={{
+                                width: '60px', height: '60px', color: c.primary, strokeWidth: 2.2,
+                                filter: isDark
+                                    ? 'drop-shadow(0 0 12px rgba(201,149,106,0.5))'
+                                    : 'drop-shadow(0 3px 8px rgba(0,0,0,0.35))',
+                            }} />
+
+                            {/* Lock badge */}
+                            <div style={{
+                                width: '50px', height: '50px', borderRadius: '50%',
+                                border: `2px solid ${c.lockBorder}`,
+                                background: c.lockBg,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: isDark
+                                    ? '0 4px 18px rgba(201,149,106,0.3)'
+                                    : '0 4px 14px rgba(0,0,0,0.3)',
+                            }}>
+                                <Lock style={{ width: '22px', height: '22px', color: c.primary }} />
+                            </div>
+
+                            {/* Bottom ruled lines */}
+                            <div style={{ position: 'absolute', bottom: '14%', left: '12%', right: '12%', display: 'flex', flexDirection: 'column', gap: '11px', opacity: 0.55 }}>
+                                {[...Array(2)].map((_, i) => <div key={i} style={{ height: '1px', background: c.groove }} />)}
+                            </div>
+
+                            {/* Right edge pages illusion */}
+                            <div style={{
+                                position: 'absolute', right: 0, top: '10px', bottom: '10px', width: '5px',
+                                background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(160,98,42,0.3)',
+                                borderRadius: '0 3px 3px 0',
+                            }} />
+                        </div>
+                    </div>
+
+                    {/* Cover inside face */}
+                    <div style={{
+                        position: 'absolute', inset: 0,
+                        background: '#F8EDD8',
+                        borderRadius: '12px',
+                        backfaceVisibility: 'hidden',
+                        transform: 'rotateY(180deg)',
+                        overflow: 'hidden',
+                        padding: '24px 20px',
+                        display: 'flex', flexDirection: 'column', gap: '10px',
+                    }}>
+                        {Array.from({ length: 13 }, (_, i) => (
+                            <div key={i} style={{ height: '1px', background: 'rgba(123,63,32,0.13)', width: i % 4 === 3 ? '58%' : '100%' }} />
+                        ))}
+                    </div>
+                </motion.div>
+
+                {/* Hint label */}
+                <AnimatePresence mode="wait">
+                    {phase === 'idle' && (
+                        <motion.p key="hint"
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ delay: 0.8, duration: 0.5 }}
+                            style={{
+                                position: 'absolute',
+                                bottom: '-46px', left: '50%', transform: 'translateX(-50%)',
+                                whiteSpace: 'nowrap', color: c.hint,
+                                fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase',
+                                pointerEvents: 'none',
+                            }}
+                        >
+                            ↑ Click to open
+                        </motion.p>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
     );
 };
@@ -361,18 +367,27 @@ const Hero = () => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
-    const titleWords1 = "Your thoughts.".split(' ');
-    const titleWords2 = "Sacred. Encrypted.".split(' ');
-    const titleWords3 = "Forever yours.".split(' ');
-
-    const container = {
+    /* Headline stagger — word by word */
+    const containerVariants = {
         hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
+        visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.12 },
+        },
     };
-    const child = {
-        hidden: { opacity: 0, y: 30 },
-        visible: { opacity: 1, y: 0, transition: { type: 'spring', damping: 12, stiffness: 100 } },
+
+    const wordVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: { duration: 0.6, ease: 'easeOut' },
+        },
     };
+
+    const titleLine1 = 'Your thoughts.'.split(' ');
+    const titleLine2 = 'Sacred. Encrypted.'.split(' ');
+    const titleLine3 = 'Forever yours.'.split(' ');
 
     return (
         <section className="relative min-h-screen flex items-center pt-20 pb-12 bg-transparent text-[var(--text-primary)]">
@@ -380,43 +395,82 @@ const Hero = () => {
 
                 {/* Left Text */}
                 <div className="flex flex-col items-start space-y-8 max-w-xl mx-auto lg:mx-0">
-                    <motion.div variants={container} initial="hidden" animate="visible"
-                        className="text-6xl lg:text-8xl font-black leading-tight tracking-tight flex flex-col">
+
+                    {/* Headline stagger */}
+                    <motion.div
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="text-6xl lg:text-8xl font-black leading-tight tracking-tight flex flex-col"
+                    >
                         <div className="flex flex-wrap overflow-hidden pb-1">
-                            {titleWords1.map((w, i) => <motion.span variants={child} key={`1-${i}`} className="mr-3">{w}</motion.span>)}
+                            {titleLine1.map((w, i) => (
+                                <motion.span variants={wordVariants} key={`1-${i}`} className="mr-3">{w}</motion.span>
+                            ))}
                         </div>
                         <div className="flex flex-wrap overflow-hidden pb-1 text-[var(--color-primary)]">
-                            {titleWords2.map((w, i) => <motion.span variants={child} key={`2-${i}`} className="mr-3">{w}</motion.span>)}
+                            {titleLine2.map((w, i) => (
+                                <motion.span variants={wordVariants} key={`2-${i}`} className="mr-3">{w}</motion.span>
+                            ))}
                         </div>
                         <div className="flex flex-wrap overflow-hidden pb-1">
-                            {titleWords3.map((w, i) => <motion.span variants={child} key={`3-${i}`} className="mr-3">{w}</motion.span>)}
+                            {titleLine3.map((w, i) => (
+                                <motion.span variants={wordVariants} key={`3-${i}`} className="mr-3">{w}</motion.span>
+                            ))}
                         </div>
                     </motion.div>
 
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.8 }}
-                        className="text-lg md:text-xl text-[var(--text-muted)] max-w-lg leading-relaxed">
+                    {/* Subtext fade */}
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4, duration: 0.5, ease: 'easeOut' }}
+                        className="text-lg md:text-xl text-[var(--text-muted)] max-w-lg leading-relaxed"
+                    >
                         Not a note app. Not a cloud drive. A private sanctuary — where your memories are sealed with military-grade encryption before they ever leave your hands. Only you hold the key.
                     </motion.p>
 
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 1.2, duration: 0.8 }}
-                        className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mt-4">
-                        <Button variant="primary" size="lg" className="w-full sm:w-auto"
-                            onClick={() => {
-                                if (isAuthenticated && isUnlocked) navigate('/diary');
-                                else navigate('/', { state: { openLogin: true } });
-                            }}>
-                            Begin Writing →
-                        </Button>
-                        <Button variant="secondary" size="lg" className="w-full sm:w-auto px-8"
-                            onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
-                            See How It Works
-                        </Button>
+                    {/* CTA Buttons */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: 0.8, duration: 0.4, ease: 'easeOut' }}
+                        className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mt-4"
+                    >
+                        <motion.div
+                            whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(123,63,32,0.3)' }}
+                            whileTap={{ scale: 0.97 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-full sm:w-auto"
+                        >
+                            <Button variant="primary" size="lg" className="w-full"
+                                onClick={() => {
+                                    if (isAuthenticated && isUnlocked) navigate('/diary');
+                                    else navigate('/', { state: { openLogin: true } });
+                                }}>
+                                Begin Writing →
+                            </Button>
+                        </motion.div>
+                        <motion.div
+                            whileHover={{ y: -3 }}
+                            whileTap={{ scale: 0.97 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-full sm:w-auto"
+                        >
+                            <Button variant="secondary" size="lg" className="w-full px-8"
+                                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
+                                See How It Works
+                            </Button>
+                        </motion.div>
                     </motion.div>
 
-                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 1.8, duration: 0.8 }}
-                        className="flex flex-wrap items-center gap-4 text-sm text-[var(--text-muted)] font-medium pt-4">
+                    {/* Trust badges */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 1.2, duration: 0.5, ease: 'easeOut' }}
+                        className="flex flex-wrap items-center gap-4 text-sm text-[var(--text-muted)] font-medium pt-4"
+                    >
                         <span className="flex items-center bg-[var(--color-border)] px-3 py-1.5 rounded-full">
                             <Lock className="w-4 h-4 mr-2 text-[var(--color-primary)]" /> AES-256 Encrypted
                         </span>
@@ -429,7 +483,7 @@ const Hero = () => {
                     </motion.div>
                 </div>
 
-                {/* Right — 3D Book */}
+                {/* Right — Floating 3D Book */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.82, y: 24 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}

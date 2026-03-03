@@ -45,7 +45,11 @@
     scroll-behavior: smooth;
     background-color: var(--color-page-bg);
     color: var(--text-primary);
-    @apply antialiased overflow-x-hidden transition-colors duration-300;
+    /* Smooth theme transition — prevents flash */
+    transition: background-color 0.3s ease, color 0.3s ease;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
   }
 }
 
@@ -171,6 +175,65 @@
   }
 }
 
+/* Floating diary book animation (4s, infinite, no rotation, no layout shift) */
+@keyframes diaryFloat {
+  0% {
+    transform: translateY(0px) translateZ(0);
+  }
+
+  50% {
+    transform: translateY(-6px) translateZ(0);
+  }
+
+  100% {
+    transform: translateY(0px) translateZ(0);
+  }
+}
+
+.diary-float {
+  animation: diaryFloat 4s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Subtle pulse for magnifier icon */
+@keyframes iconPulse {
+
+  0%,
+  100% {
+    transform: scale(1) translateZ(0);
+  }
+
+  50% {
+    transform: scale(1.05) translateZ(0);
+  }
+}
+
+.icon-pulse {
+  animation: iconPulse 2.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Nav link underline slide */
+.nav-link-underline {
+  position: relative;
+}
+
+.nav-link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background: var(--color-primary);
+  border-radius: 9999px;
+  transition: width 0.25s ease;
+}
+
+.nav-link-underline:hover::after {
+  width: 100%;
+}
+
 .paper-texture {
   background-image: repeating-linear-gradient(0deg,
       transparent,
@@ -184,5 +247,16 @@
   background-color: var(--color-card-bg);
   border: 1px solid var(--color-border);
   box-shadow: 0 8px 32px var(--shadow-color);
-  @apply backdrop-blur-xl transition-all duration-300;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: all 0.3s ease;
+}
+
+/* Input focus glow ring — used across auth modals & new entry */
+.input-focus-glow:focus {
+  box-shadow: 0 0 0 3px rgba(196, 134, 42, 0.18);
+}
+
+.dark .input-focus-glow:focus {
+  box-shadow: 0 0 0 3px rgba(201, 149, 106, 0.18);
 }
