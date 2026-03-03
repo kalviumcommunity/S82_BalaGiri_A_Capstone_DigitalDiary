@@ -141,16 +141,27 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
             Continue with Magic Link
           </button>
         </div>
-
-        <p className="mt-6 text-center text-sm opacity-80">
-          Don't have an account?{" "}
+        <div className="mt-6 flex flex-col items-center gap-3 text-sm opacity-80">
           <span
-            onClick={switchToSignup}
-            className="font-bold underline cursor-pointer hover:text-[#7B3F20] dark:hover:text-[#C9956A] transition-colors"
+            onClick={() => {
+              onClose();
+              navigate('/recover');
+            }}
+            className="cursor-pointer hover:text-[#7B3F20] dark:hover:text-[#C9956A] transition-colors underline mb-2"
           >
-            Register
+            Forgot Password? Use Recovery Key
           </span>
-        </p>
+
+          <p>
+            Don't have an account?{" "}
+            <span
+              onClick={switchToSignup}
+              className="font-bold underline cursor-pointer hover:text-[#7B3F20] dark:hover:text-[#C9956A] transition-colors"
+            >
+              Register
+            </span>
+          </p>
+        </div>
       </motion.div>
     </div>
   );

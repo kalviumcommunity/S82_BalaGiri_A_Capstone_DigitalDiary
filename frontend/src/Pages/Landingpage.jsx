@@ -10,8 +10,13 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 import { BookHeart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const LandingPage = () => {
+const LandingPage = ({ onLoadingChange }) => {
   const [loading, setLoading] = useState(true);
+
+  const handleLoadComplete = () => {
+    setLoading(false);
+    if (onLoadingChange) onLoadingChange(false);
+  };
 
   // Prevent scrolling while loading
   useEffect(() => {
@@ -27,7 +32,7 @@ const LandingPage = () => {
 
   return (
     <>
-      <PreLoader onComplete={() => setLoading(false)} />
+      <PreLoader onComplete={handleLoadComplete} />
 
       <AnimatePresence>
         {!loading && (

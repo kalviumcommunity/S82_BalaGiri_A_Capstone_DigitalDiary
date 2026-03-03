@@ -12,6 +12,19 @@
   <title>MyDiary - Your Digital Journal</title>
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' http://localhost:5000 http://localhost:5001;" />
+  <!-- Instant theme: set background before React boots to eliminate any flash -->
+  <script>
+    (function () {
+      try {
+        var theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.style.backgroundColor = theme === 'dark' ? '#0D0D1A' : '#FAF3E8';
+        document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 
 <body>

@@ -72,6 +72,36 @@ export const generateMasterKey = async () => {
     );
 };
 
+export const generateRecoveryKey = () => {
+    const rawKey = window.crypto.getRandomValues(new Uint8Array(32));
+    const hexKey = Array.from(rawKey).map(b => b.toString(16).padStart(2, '0')).join('');
+    return hexKey;
+};
+
+export const deriveRecoveryKey = async (recoveryKeyStr, saltBase64) => {
+    const enc = new TextEncoder();
+    const keyMaterial = await window.crypto.subtle.importKey(
+        "raw",
+        enc.encode(recoveryKeyStr),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
+
+    return window.crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: base64ToArrayBuffer(saltBase64),
+            iterations: PBKDF2_ITERATIONS,
+            hash: HASH_ALGO
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: KEY_LENGTH },
+        false,
+        ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
+    );
+};
+
 export const exportAndEncryptMasterKey = async (masterKey, passwordKey) => {
     const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
 
@@ -187,6 +217,19 @@ export const decryptMasterKeyForHKDF = async (passwordKey, encryptedMasterKeyB64
         false,
         ["deriveKey"]
     );
+};
+
+export const decryptMasterKeyRaw = async (passwordKey, encryptedMasterKeyB64, ivB64) => {
+    const encryptedBuffer = base64ToArrayBuffer(encryptedMasterKeyB64);
+    const iv = base64ToArrayBuffer(ivB64);
+
+    const rawMK = await window.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: new Uint8Array(iv) },
+        passwordKey,
+        encryptedBuffer
+    );
+
+    return rawMK;
 };
 
 export const generateMasterKeyHKDF = async () => {
