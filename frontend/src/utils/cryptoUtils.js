@@ -153,7 +153,6 @@ export const decryptMasterKey = async (passwordKey, encryptedMasterKeyB64, ivB64
             ["encrypt", "decrypt"]
         );
     } catch (e) {
-        // console.error("Master Key Decryption Failed", e);
         throw new Error("Incorrect password or corrupted key.");
     }
 };

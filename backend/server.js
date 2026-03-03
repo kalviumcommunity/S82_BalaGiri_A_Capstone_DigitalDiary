@@ -8,7 +8,6 @@ const diaryRoutes = require('./routes/diaryRoutes');
 
 const app = express();
 
-// Middleware
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true
@@ -32,7 +31,6 @@ app.use(
 
 const path = require('path');
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/diary', diaryRoutes);
 

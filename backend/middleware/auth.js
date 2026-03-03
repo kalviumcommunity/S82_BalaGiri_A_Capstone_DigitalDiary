@@ -22,7 +22,6 @@ const authenticateToken = (req, res, next) => {
       return res.status(500).json({ message: "Server configuration error" });
     }
 
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();

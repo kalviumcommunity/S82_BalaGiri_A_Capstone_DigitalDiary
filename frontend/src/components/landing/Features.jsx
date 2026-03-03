@@ -42,7 +42,6 @@ const FeatureCard = ({ icon: Icon, title, description, isDark, index }) => {
           : 'bg-[#FFFFFF] border-[#E8D9C5] hover:border-[#7B3F20]/40 hover:shadow-[0_12px_40px_rgba(123,63,32,0.12)]'
         }`}
     >
-      {/* Spotlight Effect */}
       <div
         className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 group-hover:opacity-100"
         style={{
@@ -52,7 +51,6 @@ const FeatureCard = ({ icon: Icon, title, description, isDark, index }) => {
       />
 
       <div className="relative z-10">
-        {/* Icon container — scales on card hover */}
         <motion.div
           className="w-12 h-12 rounded-xl flex items-center justify-center mb-6 shadow-sm"
           style={{ background: isDark ? 'rgba(201,149,106,0.1)' : 'rgba(123,63,32,0.05)' }}

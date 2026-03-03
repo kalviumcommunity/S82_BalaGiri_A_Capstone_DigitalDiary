@@ -4,11 +4,11 @@ import { useTheme } from '../../context/ThemeContext';
 const Particles = ({ isDark }) => {
     const particles = useMemo(() => {
         return Array.from({ length: 20 }).map((_, i) => {
-            const size = Math.random() * 3 + 3; // 3px to 6px
+            const size = Math.random() * 3 + 3;
             const left = Math.random() * 100;
             const top = Math.random() * 100;
-            const duration = Math.random() * 6 + 6; // 6s to 12s
-            const delay = Math.random() * 5; // 0s to 5s
+            const duration = Math.random() * 6 + 6;
+            const delay = Math.random() * 5;
             const isGold = Math.random() > 0.5;
 
             let background;

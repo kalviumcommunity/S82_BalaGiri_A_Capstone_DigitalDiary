@@ -6,7 +6,6 @@ import FailureAnimation from '../components/FailureAnimation';
 import { useDialog } from '../context/DialogContext';
 import { useAuth } from '../context/AuthContext';
 
-/* ── Modal animation variants ──────────────────────────────── */
 const backdropVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.3 } },
@@ -96,7 +95,6 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
 
   return (
     <AnimatePresence>
-      {/* Backdrop */}
       <motion.div
         key="login-backdrop"
         variants={backdropVariants}
@@ -107,9 +105,7 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
       >
         {error && <FailureAnimation message={error} onClose={() => setError(null)} />}
 
-        {/* Shake wrapper — controls handle the shake; entrance via initial/animate on inner */}
         <motion.div animate={controls} style={{ width: '100%', maxWidth: '400px', margin: '0 16px' }}>
-          {/* Modal entrance */}
           <motion.div
             key="login-modal"
             variants={modalVariants}
@@ -124,7 +120,6 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
             <h2 className="text-3xl font-bold mb-8 text-center tracking-tight">Welcome Back</h2>
 
             <div className="space-y-4">
-              {/* Email input with focus scale */}
               <motion.input
                 type="email"
                 placeholder="Email"
@@ -144,20 +139,21 @@ const Login = ({ onClose, switchToSignup, currentTheme, isDark, onLoginSuccess }
                   transition={{ duration: 0.2 }}
                   className={`w-full px-5 py-3 rounded-xl ${inputBg} ${textColor} ${placeholderColor} focus:outline-none focus:ring-1 focus:ring-[#C4862A] dark:focus:ring-[#C9956A] transition-all border border-transparent focus:border-[#C4862A] dark:focus:border-[#C9956A] input-focus-glow`}
                 />
-                {/* Eye icon — 10° micro-rotation on toggle */}
-                <motion.button
-                  onClick={() => setShowPassword(!showPassword)}
-                  animate={{ rotate: showPassword ? 10 : 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                  className={`absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-white/10 transition-colors ${textColor} opacity-70 hover:opacity-100`}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </motion.button>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center shrink-0">
+                  <motion.button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    animate={{ rotate: showPassword ? 10 : 0 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className={`p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${textColor} opacity-70 hover:opacity-100`}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </motion.button>
+                </div>
               </div>
             </div>
 
             <div className="mt-8 space-y-3">
-              {/* Login button — press effect */}
               <motion.button
                 onClick={handleLogin}
                 whileTap={{ scale: 0.97 }}

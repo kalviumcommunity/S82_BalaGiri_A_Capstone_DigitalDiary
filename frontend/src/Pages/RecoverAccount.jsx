@@ -54,7 +54,6 @@ const RecoverAccount = () => {
             const recoveryDerivedKey = await deriveRecoveryKey(recoveryKey, recoverySalt);
             const rawMK = await decryptMasterKeyRaw(recoveryDerivedKey, recoveryEncryptedMasterKey, recoveryMasterKeyIV);
 
-            // Successfully decrypted
             setDecryptedKeyMaterial(rawMK);
             setStep(2);
             setLoading(false);
@@ -113,7 +112,6 @@ const RecoverAccount = () => {
                 throw new Error(data.message || "Failed to reset password");
             }
 
-            // Login and redirect
             await login(email, newPassword);
             setLoading(false);
             navigate('/diary');

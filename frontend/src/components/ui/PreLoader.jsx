@@ -19,7 +19,6 @@ const PreLoader = ({ onComplete }) => {
         }
     }, []);
 
-    // Theme-matched colors
     const colors = isDark
         ? {
             bg: '#0D0D1A',
@@ -38,7 +37,6 @@ const PreLoader = ({ onComplete }) => {
             particle: 'rgba(123, 63, 32, 0.25)',
         };
 
-    // Type one character every 100ms until the full text is shown
     useEffect(() => {
         if (typedText.length >= FULL_TEXT.length) return;
         const timeout = setTimeout(() => {
@@ -78,7 +76,6 @@ const PreLoader = ({ onComplete }) => {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.45, ease: 'easeInOut' }}
                 >
-                    {/* Floating particles — theme-aware */}
                     {particles.map((p) => (
                         <motion.div
                             key={p.id}
@@ -98,7 +95,6 @@ const PreLoader = ({ onComplete }) => {
                         />
                     ))}
 
-                    {/* Soft radial glow blob — no more dark circle */}
                     <motion.div
                         className="absolute rounded-full pointer-events-none blur-3xl"
                         style={{ background: `radial-gradient(circle, ${colors.glowOrb}, transparent 70%)` }}
@@ -107,7 +103,6 @@ const PreLoader = ({ onComplete }) => {
                         transition={{ duration: 2.5, ease: 'easeOut' }}
                     />
 
-                    {/* Main content */}
                     <div className="relative z-10 flex flex-col items-center">
                         <motion.div
                             initial={{ scale: 0.75, opacity: 0 }}
@@ -125,7 +120,6 @@ const PreLoader = ({ onComplete }) => {
                             style={{ color: colors.text }}
                         >
                             {typedText}
-                            {/* Cursor blinks while typing, disappears once done */}
                             {!isDoneTyping && (
                                 <motion.span
                                     animate={{ opacity: [1, 0] }}

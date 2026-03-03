@@ -6,12 +6,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-/* ─── TIMING CONSTANTS ─────────────────────────────────────── */
 const PAGE_FLIP_INTERVAL = 220;    // ms between each page flip
 const OPEN_PAUSE = 1000;   // ms to stay open before auto-close
 const FLIP_DURATION = 0.6;    // framer-motion spring duration (s)
 
-/* ─── PAGE CONTENT ─────────────────────────────────────────── */
 const PAGES = [
     { id: 1, heading: 'Dear Diary...', lines: 11 },
     { id: 2, heading: 'March 2025', lines: 11 },
@@ -19,7 +17,6 @@ const PAGES = [
     { id: 4, heading: 'Things I Love ♥', lines: 11 },
 ];
 
-/* ─── SINGLE PAGE ──────────────────────────────────────────── */
 const Page = ({ page, index, flipped, total }) => (
     <motion.div
         animate={{ rotateY: flipped ? -178 : 0 }}
@@ -28,17 +25,17 @@ const Page = ({ page, index, flipped, total }) => (
             ease: [0.25, 0.8, 0.25, 1],
         }}
         style={{
-            position: 'absolute', inset: 0,
+            position: 'absolute',
+            top: '8px', bottom: '8px', left: '16px', right: '8px',
             transformOrigin: 'left center',
             transformStyle: 'preserve-3d',
             zIndex: total - index,
         }}
     >
-        {/* Front of page */}
         <div style={{
             position: 'absolute', inset: 0,
             background: index % 2 === 0 ? '#FBF5E6' : '#FFF8EE',
-            borderRadius: '3px 10px 10px 3px',
+            borderRadius: '3px 8px 8px 3px',
             backfaceVisibility: 'hidden',
             overflow: 'hidden',
             boxShadow: '-3px 0 14px rgba(0,0,0,0.25), 2px 0 4px rgba(0,0,0,0.08)',
@@ -61,11 +58,10 @@ const Page = ({ page, index, flipped, total }) => (
             ))}
         </div>
 
-        {/* Back of page (inside after flip) */}
         <div style={{
             position: 'absolute', inset: 0,
             background: index % 2 === 0 ? '#FFF8EE' : '#FBF5E6',
-            borderRadius: '10px 3px 3px 10px',
+            borderRadius: '8px 3px 3px 8px',
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
             overflow: 'hidden',
@@ -83,7 +79,6 @@ const Page = ({ page, index, flipped, total }) => (
     </motion.div>
 );
 
-/* ─── 3D DIARY BOOK ─────────────────────────────────────────── */
 // phase: 'idle' | 'opening' | 'open' | 'closing'
 const DiaryBook = ({ isDark }) => {
     const [phase, setPhase] = useState('idle');
@@ -133,7 +128,6 @@ const DiaryBook = ({ isDark }) => {
 
     useEffect(() => () => clearCycle(), []);
 
-    // Theme colours
     const c = isDark ? {
         cover: 'linear-gradient(160deg, #2A2045 0%, #1C1828 50%, #100E1A 100%)',
         coverSheen: 'linear-gradient(130deg, rgba(201,149,106,0.14) 0%, transparent 55%)',
@@ -167,7 +161,6 @@ const DiaryBook = ({ isDark }) => {
 
 
     return (
-        /* ── Floating wrapper — translateY only, no rotation, no layout shift ── */
         <div
             className="diary-float"
             style={{ display: 'inline-block' }}
@@ -182,7 +175,6 @@ const DiaryBook = ({ isDark }) => {
                     userSelect: 'none',
                 }}
             >
-                {/* Ground glow */}
                 <motion.div
                     animate={{ opacity: coverOpen ? 0.65 : 0.35, scaleX: coverOpen ? 1.2 : 1 }}
                     transition={{ duration: 0.6 }}
@@ -197,7 +189,6 @@ const DiaryBook = ({ isDark }) => {
                     }}
                 />
 
-                {/* Back cover depth */}
                 <div style={{
                     position: 'absolute',
                     top: '10px', left: '8px',
@@ -207,7 +198,6 @@ const DiaryBook = ({ isDark }) => {
                     zIndex: 0,
                 }} />
 
-                {/* Stacked page-edge strips (right side) */}
                 {c.pageEdge.map((bg, i) => (
                     <div key={i} style={{
                         position: 'absolute',
@@ -220,7 +210,6 @@ const DiaryBook = ({ isDark }) => {
                     }} />
                 ))}
 
-                {/* Pages container — behind cover */}
                 <div style={{
                     position: 'absolute', inset: 0,
                     zIndex: 2,
@@ -237,7 +226,6 @@ const DiaryBook = ({ isDark }) => {
                     ))}
                 </div>
 
-                {/* ── COVER — flips first (open), closes last ── */}
                 <motion.div
                     animate={{ rotateY: coverOpen ? -178 : 0 }}
                     transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
@@ -248,7 +236,6 @@ const DiaryBook = ({ isDark }) => {
                         zIndex: 20,
                     }}
                 >
-                    {/* Cover front */}
                     <div style={{
                         position: 'absolute', inset: 0,
                         background: c.cover,
@@ -258,10 +245,8 @@ const DiaryBook = ({ isDark }) => {
                         boxShadow: c.shadow,
                         overflow: 'hidden',
                     }}>
-                        {/* Sheen */}
                         <div style={{ position: 'absolute', inset: 0, background: c.coverSheen, pointerEvents: 'none' }} />
 
-                        {/* Spine */}
                         <div style={{
                             position: 'absolute', left: 0, top: 0, bottom: 0, width: '22px',
                             background: c.spine,
@@ -270,7 +255,6 @@ const DiaryBook = ({ isDark }) => {
                             zIndex: 2,
                         }} />
 
-                        {/* Content area */}
                         <div style={{
                             position: 'absolute',
                             left: '22px', right: 0, top: 0, bottom: 0,
@@ -279,7 +263,6 @@ const DiaryBook = ({ isDark }) => {
                             padding: '24px 18px',
                             gap: '18px',
                         }}>
-                            {/* Top ruled lines */}
                             <div style={{ position: 'absolute', top: '14%', left: '12%', right: '12%', display: 'flex', flexDirection: 'column', gap: '11px', opacity: 0.55 }}>
                                 {[...Array(3)].map((_, i) => <div key={i} style={{ height: '1px', background: c.groove }} />)}
                             </div>
@@ -291,7 +274,6 @@ const DiaryBook = ({ isDark }) => {
                                     : 'drop-shadow(0 3px 8px rgba(0,0,0,0.35))',
                             }} />
 
-                            {/* Lock badge */}
                             <div style={{
                                 width: '50px', height: '50px', borderRadius: '50%',
                                 border: `2px solid ${c.lockBorder}`,
@@ -304,12 +286,10 @@ const DiaryBook = ({ isDark }) => {
                                 <Lock style={{ width: '22px', height: '22px', color: c.primary }} />
                             </div>
 
-                            {/* Bottom ruled lines */}
                             <div style={{ position: 'absolute', bottom: '14%', left: '12%', right: '12%', display: 'flex', flexDirection: 'column', gap: '11px', opacity: 0.55 }}>
                                 {[...Array(2)].map((_, i) => <div key={i} style={{ height: '1px', background: c.groove }} />)}
                             </div>
 
-                            {/* Right edge pages illusion */}
                             <div style={{
                                 position: 'absolute', right: 0, top: '10px', bottom: '10px', width: '5px',
                                 background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(160,98,42,0.3)',
@@ -318,7 +298,6 @@ const DiaryBook = ({ isDark }) => {
                         </div>
                     </div>
 
-                    {/* Cover inside face */}
                     <div style={{
                         position: 'absolute', inset: 0,
                         background: '#F8EDD8',
@@ -335,7 +314,6 @@ const DiaryBook = ({ isDark }) => {
                     </div>
                 </motion.div>
 
-                {/* Hint label */}
                 <AnimatePresence mode="wait">
                     {phase === 'idle' && (
                         <motion.p key="hint"
@@ -360,14 +338,12 @@ const DiaryBook = ({ isDark }) => {
     );
 };
 
-/* ─── HERO ──────────────────────────────────────────────────── */
 const Hero = () => {
     const navigate = useNavigate();
     const { isAuthenticated, isUnlocked } = useAuth();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
-    /* Headline stagger — word by word */
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -393,10 +369,8 @@ const Hero = () => {
         <section className="relative min-h-screen flex items-center pt-20 pb-12 bg-transparent text-[var(--text-primary)]">
             <div className="w-full max-w-7xl mx-auto px-6 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
-                {/* Left Text */}
                 <div className="flex flex-col items-start space-y-8 max-w-xl mx-auto lg:mx-0">
 
-                    {/* Headline stagger */}
                     <motion.div
                         variants={containerVariants}
                         initial="hidden"
@@ -420,7 +394,6 @@ const Hero = () => {
                         </div>
                     </motion.div>
 
-                    {/* Subtext fade */}
                     <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -430,7 +403,6 @@ const Hero = () => {
                         Not a note app. Not a cloud drive. A private sanctuary — where your memories are sealed with military-grade encryption before they ever leave your hands. Only you hold the key.
                     </motion.p>
 
-                    {/* CTA Buttons */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -464,7 +436,6 @@ const Hero = () => {
                         </motion.div>
                     </motion.div>
 
-                    {/* Trust badges */}
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -483,7 +454,6 @@ const Hero = () => {
                     </motion.div>
                 </div>
 
-                {/* Right — Floating 3D Book */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.82, y: 24 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}

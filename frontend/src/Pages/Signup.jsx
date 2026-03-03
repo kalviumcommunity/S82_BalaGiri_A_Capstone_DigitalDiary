@@ -6,7 +6,6 @@ import FailureAnimation from '../components/FailureAnimation';
 import { useAuth } from '../context/AuthContext';
 import { generateMasterKeyHKDF, derivePasswordKey, encryptMasterKey, deriveEncryptionKey, createValidator, generateSalt, generateRecoveryKey, deriveRecoveryKey } from '../utils/cryptoUtils';
 
-/* ── Modal animation variants ──────────────────────────────── */
 const backdropVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.3 } },
@@ -27,7 +26,6 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
   const [error, setError] = useState(null);
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false);
 
-  // Recovery key step states
   const [step, setStep] = useState(1);
   const [recoveryKey, setRecoveryKey] = useState("");
   const [savedRecoveryKey, setSavedRecoveryKey] = useState(false);
@@ -132,7 +130,6 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
 
   return (
     <AnimatePresence>
-      {/* Backdrop */}
       <motion.div
         key="signup-backdrop"
         variants={backdropVariants}
@@ -143,9 +140,7 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
       >
         {error && <FailureAnimation message={error} onClose={() => setError(null)} />}
 
-        {/* Shake wrapper — controls handle the shake; entrance via variants on inner */}
         <motion.div animate={controls} style={{ width: '100%', maxWidth: '400px', margin: '0 16px' }}>
-          {/* Modal entrance */}
           <motion.div
             key="signup-modal"
             variants={modalVariants}
@@ -191,16 +186,17 @@ const Signup = ({ onClose, switchToLogin, currentTheme, isDark, onLoginSuccess }
                       transition={{ duration: 0.2 }}
                       className={`w-full px-5 py-3 rounded-xl ${inputBg} ${textColor} ${placeholderColor} focus:outline-none focus:ring-1 focus:ring-[#C4862A] dark:focus:ring-[#C9956A] transition-all border border-transparent focus:border-[#C4862A] dark:focus:border-[#C9956A] input-focus-glow`}
                     />
-                    {/* Eye icon — 10° micro-rotation */}
-                    <motion.button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      animate={{ rotate: showPassword ? 10 : 0 }}
-                      transition={{ duration: 0.2, ease: 'easeOut' }}
-                      className={`absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-white/10 transition-colors ${textColor} opacity-70 hover:opacity-100`}
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </motion.button>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center shrink-0">
+                      <motion.button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        animate={{ rotate: showPassword ? 10 : 0 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                        className={`p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${textColor} opacity-70 hover:opacity-100`}
+                      >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </motion.button>
+                    </div>
                   </div>
                 </div>
 

@@ -5,7 +5,6 @@ const CustomCursor = () => {
     const followerRef = useRef(null);
     const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-    // For lerp
     const cursorX = useRef(0);
     const cursorY = useRef(0);
     const followerX = useRef(0);
@@ -39,7 +38,7 @@ const CustomCursor = () => {
         };
 
         const updateFollower = () => {
-            followerX.current += (cursorX.current - followerX.current) * 0.15; // lerp factor
+            followerX.current += (cursorX.current - followerX.current) * 0.15;
             followerY.current += (cursorY.current - followerY.current) * 0.15;
 
             if (followerRef.current) {
@@ -74,7 +73,6 @@ const CustomCursor = () => {
 
     return (
         <div className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
-            {/* Dots trail */}
             {dots.map(dot => (
                 <div
                     key={dot.id}
@@ -88,7 +86,6 @@ const CustomCursor = () => {
                 />
             ))}
 
-            {/* Follower ring */}
             <div
                 ref={followerRef}
                 className={`absolute left-0 top-0 w-10 h-10 rounded-full border border-[var(--color-primary)] transition-all duration-300 ease-out origin-center
@@ -103,7 +100,6 @@ const CustomCursor = () => {
                 }}
             />
 
-            {/* Main Cursor */}
             <div
                 ref={cursorRef}
                 className="absolute left-0 top-0 w-6 h-6 flex items-center justify-center transition-transform duration-100 ease-out"
@@ -120,7 +116,6 @@ const CustomCursor = () => {
                     </svg>
                 ) : (
                     <svg viewBox="0 0 24 24" className={`fill-[var(--color-primary)] transition-transform duration-200 ${cursorState === 'pointer' ? 'scale-125 w-6 h-6' : 'w-5 h-5'}`}>
-                        {/* Simple feather quill or drop */}
                         <path d="M7,2C3.13,2 0,5.13 0,9C0,11.38 1.19,13.47 3,14.74V22H5V16.4C5.64,16.78 6.31,17 7,17C10.87,17 14,13.87 14,10L14,2H7ZM12,10C12,12.76 9.76,15 7,15C4.24,15 2,12.76 2,10C2,7.24 4.24,5 7,5H12V10Z" transform="translate(4,1)" />
                     </svg>
                 )}
