@@ -87,12 +87,14 @@ function App() {
       {!isPageLoading && location.pathname !== '/diary' && (
         <motion.nav
           className="absolute top-0 w-full z-50 p-6 flex justify-center"
-          initial={false}
+          initial={{ opacity: 0, y: -10 }}
           animate={{
+            opacity: 1,
+            y: 0,
             paddingTop: isScrolled ? '1rem' : '1.5rem',
             paddingBottom: isScrolled ? '1rem' : '1.5rem',
           }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
         >
           <motion.div
             className="w-full max-w-7xl flex flex-col sm:flex-row gap-4 sm:gap-0 justify-between items-center rounded-2xl px-4 py-3 sm:px-6 sm:py-4 transition-all duration-300"
@@ -115,10 +117,10 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-4 sm:space-x-8 text-sm sm:text-base font-medium w-full sm:w-auto justify-center sm:justify-end">
-              <Link to="/" className="text-[var(--text-muted)] hover:text-[var(--text-accent)] transition-colors cursor-pointer">Home</Link>
-              <Link to="/features" className="text-[var(--text-muted)] hover:text-[var(--text-accent)] transition-colors cursor-pointer">Features</Link>
-              <Link to="/about" className="text-[var(--text-muted)] hover:text-[var(--text-accent)] transition-colors cursor-pointer">About</Link>
-              <Link to="/contact" className="text-[var(--text-muted)] hover:text-[var(--text-accent)] transition-colors cursor-pointer">Contact</Link>
+              <Link to="/" className="nav-link-underline text-[var(--text-muted)] hover:text-[var(--text-accent)] transition-colors duration-200 cursor-pointer">Home</Link>
+              <Link to="/features" className="nav-link-underline text-[var(--text-muted)] hover:text-[var(--text-accent)] transition-colors duration-200 cursor-pointer">Features</Link>
+              <Link to="/about" className="nav-link-underline text-[var(--text-muted)] hover:text-[var(--text-accent)] transition-colors duration-200 cursor-pointer">About</Link>
+              <Link to="/contact" className="nav-link-underline text-[var(--text-muted)] hover:text-[var(--text-accent)] transition-colors duration-200 cursor-pointer">Contact</Link>
               <div className="hidden sm:block">
                 <ThemeToggle />
               </div>

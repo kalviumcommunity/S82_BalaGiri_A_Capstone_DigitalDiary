@@ -8,10 +8,11 @@ function Contact() {
 
   return (
     <div className="min-h-screen px-6 pt-32 pb-20 flex justify-center items-center transition-colors duration-300">
+      {/* Center card: scale 0.96→1 + fade on load */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.5, type: 'spring', stiffness: 100 }}
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
         className="max-w-xl w-full backdrop-blur-xl rounded-3xl p-6 sm:p-10 text-center border relative overflow-hidden transition-colors duration-300"
         style={{
           background: 'var(--color-card-elevated)',
@@ -40,9 +41,11 @@ function Contact() {
         </div>
 
         <div className="space-y-4">
+          {/* GitHub button — hover lift 3px + subtle shadow */}
           <motion.a
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ y: -3, boxShadow: '0 8px 24px var(--shadow-color)' }}
             whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             href="https://github.com/bala-Git-code/"
             target="_blank"
             rel="noopener noreferrer"
@@ -54,12 +57,20 @@ function Contact() {
           >
             <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300 bg-[var(--color-highlight)]"></div>
             <span className="text-xs uppercase tracking-wider block mb-1 text-[var(--text-primary)] opacity-80">Check out my work</span>
-            <span className="font-semibold text-lg text-[var(--color-highlight)]">github.com/bala-Git-code</span>
+            {/* Link text — color transition 0.2s */}
+            <span
+              className="font-semibold text-lg transition-colors duration-200"
+              style={{ color: 'var(--color-highlight)' }}
+            >
+              github.com/bala-Git-code
+            </span>
           </motion.a>
 
+          {/* Email button */}
           <motion.a
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ y: -3, boxShadow: '0 8px 24px var(--shadow-color)' }}
             whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             href="mailto:balagiri702@gmail.com"
             className="block w-full p-5 rounded-xl border transition-all overflow-hidden relative group"
             style={{
@@ -69,7 +80,12 @@ function Contact() {
           >
             <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300 bg-[var(--color-primary)]"></div>
             <span className="text-xs uppercase tracking-wider block mb-1 text-[var(--text-primary)] opacity-80">Contact me at</span>
-            <span className="font-semibold text-lg text-[var(--color-primary)]">balagiri702@gmail.com</span>
+            <span
+              className="font-semibold text-lg transition-colors duration-200"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              balagiri702@gmail.com
+            </span>
           </motion.a>
         </div>
       </motion.div>

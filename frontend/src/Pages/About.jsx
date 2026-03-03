@@ -1,5 +1,5 @@
 import React from "react";
-import { Heart, Sparkles, BookOpen, Rocket, Coffee } from "lucide-react";
+import { Heart, Sparkles, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 
 const SpotlightCard = ({ children, index, className = "" }) => {
@@ -12,11 +12,12 @@ const SpotlightCard = ({ children, index, className = "" }) => {
   };
 
   return (
+    /* Vision card: slide up gently, no hover animation (serious section) */
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, delay: index * 0.1 }}
+      transition={{ duration: 0.5, delay: index * 0.1, ease: 'easeOut' }}
       onMouseMove={handleMouseMove}
       className={`group relative overflow-hidden rounded-3xl shadow-sm transition-colors duration-300 border ${className}`}
       style={{
@@ -41,10 +42,12 @@ const About = () => {
   return (
     <div className="pb-24 pt-12 px-6 sm:px-12 relative z-10 transition-colors duration-300">
       <div className="max-w-5xl mx-auto">
+
+        {/* Title fade-in */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center mb-16"
         >
           <div className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-[var(--color-card-bg)] border border-[var(--color-border)] shadow-sm">
@@ -53,11 +56,19 @@ const About = () => {
           <h1 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight drop-shadow-sm text-[var(--text-primary)]">
             Our Story
           </h1>
-          <p className="text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed text-[var(--text-muted)]">
+
+          {/* Paragraph fade-in with 0.2s delay */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5, ease: 'easeOut' }}
+            className="text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed text-[var(--text-muted)]"
+          >
             Digital Diary began as a capstone vision—a challenge to merge military-grade security with an undeniably beautiful user experience.
-          </p>
+          </motion.p>
         </motion.div>
 
+        {/* Vision Card — slide up, no hover animation */}
         <SpotlightCard index={1} className="mb-8">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-[var(--text-primary)]">
             <BookOpen className="text-[var(--color-highlight)]" /> The Vision
@@ -69,8 +80,6 @@ const About = () => {
             Every line of code in this MERN stack application was written with a single promise: <span className="italic">Your thoughts belong solely to you.</span> By implementing end-to-end AES-256 encryption within a seamless interface, we've proven that privacy does not have to come at the cost of aesthetics.
           </p>
         </SpotlightCard>
-
-
 
         <motion.div
           initial={{ opacity: 0 }}

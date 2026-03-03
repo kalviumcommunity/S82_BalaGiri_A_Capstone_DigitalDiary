@@ -213,15 +213,20 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
-      <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-md transition-opacity"
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        className="fixed inset-0 bg-black/70 backdrop-blur-md"
         onClick={onClose}
-      ></div>
+      />
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        initial={{ opacity: 0, y: 30, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 30, scale: 0.98 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
         className={`relative ${modalBg} backdrop-blur-2xl rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border ${borderColor}`}
       >
         {showSuccess && <SuccessAnimation message="Entry Saved Successfully!" onClose={() => setShowSuccess(false)} />}
@@ -255,16 +260,19 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                   placeholder="Title your memory..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className={`w-full text-2xl font-semibold bg-transparent border-b ${borderColor} px-2 py-3 ${textColor} placeholder:text-[#B8A898] dark:placeholder:text-[#6B6070] focus:outline-none focus:border-[#C4862A] dark:focus:border-[#C9956A] transition-colors`}
+                  className={`w-full text-2xl font-semibold bg-transparent border-b-2 ${borderColor} px-2 py-3 ${textColor} placeholder:text-[#B8A898] dark:placeholder:text-[#6B6070] focus:outline-none focus:border-[#C4862A] dark:focus:border-[#C9956A] transition-all duration-200`}
+                  style={{ transition: 'border-color 0.2s ease' }}
                   required
                 />
               </div>
 
               {/* Mood Picker */}
               <div className="relative" ref={emojiPickerRef}>
-                <button
+                <motion.button
                   type="button"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  whileTap={{ scale: 1.1 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
                   className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${borderColor} ${inputBg} ${textColor} hover:border-[#C4862A] dark:hover:border-[#C9956A] transition-colors min-w-[140px] justify-center`}
                 >
                   {mood ? (
@@ -275,7 +283,7 @@ function NewEntryModal({ onClose, onSave, currentTheme, entry }) {
                       <span className={`${subTextColor} font-medium`}>Add Mood</span>
                     </>
                   )}
-                </button>
+                </motion.button>
                 <AnimatePresence>
                   {showEmojiPicker && (
                     <motion.div

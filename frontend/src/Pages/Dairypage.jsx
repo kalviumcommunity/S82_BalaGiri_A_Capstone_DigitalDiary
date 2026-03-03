@@ -409,7 +409,12 @@ function DiaryPage() {
   }, [entries, encryptionKey, processEntry]);
 
   return (
-    <div className={`pt-0 min-h-screen ${isDark ? 'bg-[#0D0D1A]' : 'bg-[#FAF3E8]'} pb-12`}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className={`pt-0 min-h-screen ${isDark ? 'bg-[#0D0D1A]' : 'bg-[#FAF3E8]'} pb-12`}
+    >
       <nav className={`sticky top-0 z-40 ${isDark ? 'bg-[#13111C]/80' : 'bg-white/80'} backdrop-blur border-b ${borderColor} px-4 md:px-8 py-4 mb-8`}>
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
           <div className="flex items-center gap-4">
@@ -490,15 +495,18 @@ function DiaryPage() {
         </div>
 
         {/* Floating Action Button for New Entry */}
-        <button
+        <motion.button
           onClick={() => {
             setIsNewEntryOpen(true);
             setEntryToEdit(null);
           }}
-          className={`fixed bottom-8 right-8 z-40 group ${isDark ? 'bg-[#C9956A] text-[#0D0D1A] shadow-[0_4px_20px_rgba(201,149,106,0.35)] hover:bg-[#E8B86D]' : 'bg-[#7B3F20] text-white shadow-[0_4px_20px_rgba(123,63,32,0.35)] hover:bg-[#5C2E14]'} p-5 rounded-full font-bold transition-all duration-300 hover:scale-110 flex items-center justify-center animate-bounce-slow`}
+          whileHover={{ scale: 1.08, boxShadow: isDark ? '0 8px 32px rgba(201,149,106,0.5)' : '0 8px 32px rgba(123,63,32,0.4)' }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className={`fixed bottom-8 right-8 z-40 group ${isDark ? 'bg-[#C9956A] text-[#0D0D1A] shadow-[0_4px_20px_rgba(201,149,106,0.35)] hover:bg-[#E8B86D]' : 'bg-[#7B3F20] text-white shadow-[0_4px_20px_rgba(123,63,32,0.35)] hover:bg-[#5C2E14]'} p-5 rounded-full font-bold transition-colors flex items-center justify-center`}
         >
           <PenSquare className="w-6 h-6" />
-        </button>
+        </motion.button>
 
         <div className="relative">
           <AnimatePresence>
@@ -573,13 +581,15 @@ function DiaryPage() {
           <div className="max-w-4xl mx-auto space-y-8">
             {Object.keys(groupedEntries).length === 0 ? (
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
                 className={`${bgOverlay} backdrop-blur-2xl rounded-3xl p-8 sm:p-16 text-center border ${borderColor} shadow-2xl flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px]`}
               >
                 <div className="mb-8 relative">
                   <div className={`p-8 rounded-full ${isDark ? 'bg-[#2E2940]' : 'bg-[#F5ECE0]'}`}>
-                    <Search className={`w-16 h-16 ${isDark ? 'text-[#C9956A]' : 'text-[#C4862A]'} opacity-80`} />
+                    {/* Subtle pulse on magnifier icon */}
+                    <Search className={`w-16 h-16 ${isDark ? 'text-[#C9956A]' : 'text-[#C4862A]'} opacity-80 icon-pulse`} />
                   </div>
                 </div>
                 <h3 className={`text-3xl font-bold mb-3 ${text}`}>No entries found</h3>
@@ -708,7 +718,7 @@ function DiaryPage() {
           />
         ) : null}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
