@@ -414,7 +414,7 @@ function DiaryPage() {
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className={`pt-0 min-h-screen ${isDark ? 'bg-[#0D0D1A]' : 'bg-[#FAF3E8]'} pb-12`}
     >
-      <nav className={`sticky top-0 z-40 ${isDark ? 'bg-[#13111C]/80' : 'bg-white/80'} backdrop-blur border-b ${borderColor} px-4 md:px-8 py-4 mb-8`}>
+      <nav className={`sticky top-0 z-50 ${isDark ? 'bg-[#13111C]/80' : 'bg-white/80'} backdrop-blur border-b ${borderColor} px-4 md:px-8 py-4 mb-8`}>
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
           <div className="flex items-center gap-4">
             <button
@@ -435,7 +435,7 @@ function DiaryPage() {
       </nav>
 
       <div className="px-4 md:px-8 max-w-7xl mx-auto relative pb-24">
-        <div className={`flex justify-between items-center mb-8 ${isDark ? 'bg-[#13111C]/50' : 'bg-white/50'} backdrop-blur-md p-4 rounded-2xl border ${borderColor}`}>
+        <div className={`relative z-40 flex justify-between items-center mb-8 ${isDark ? 'bg-[#13111C]/50' : 'bg-white/50'} backdrop-blur-md p-4 rounded-2xl border ${borderColor}`}>
           <h2 className="text-xl font-medium" style={{ color: 'var(--text-muted)' }}>
             {decryptedEntries.length} {decryptedEntries.length === 1 ? 'Entry' : 'Entries'}
           </h2>
@@ -460,7 +460,7 @@ function DiaryPage() {
               {showCalendar && (
                 <div className="absolute top-14 right-0 p-4 z-50 animate-in fade-in zoom-in duration-200">
                   <div className={`${isDark ? 'bg-[#1C1828]' : 'bg-white'} rounded-2xl shadow-2xl p-4 border ${borderColor} w-[350px]`}>
-                    <div className={`custom-calendar-container ${isDark ? 'text-[#F0E6D3]' : ''}`}>
+                    <div className={`custom-calendar-container ${isDark ? 'dark text-[#F0E6D3]' : 'text-[#1E0F00]'}`}>
                       <CalendarView
                         onChange={(date) => {
                           onDateChange(date);
@@ -603,17 +603,24 @@ function DiaryPage() {
               <div key={monthYear} className="animate-fade-in">
                 <h3 className={`text-2xl font-bold mb-4 ${text} opacity-90 pl-2 border-l-4 ${isDark ? 'border-[#C9956A]' : 'border-[#7B3F20]'}`}>{monthYear}</h3>
                 <div className="grid gap-6">
-                  {monthEntries.map((entry) => (
-                    <DiaryCard
+                  {monthEntries.map((entry, index) => (
+                    <motion.div
                       key={entry._id}
-                      entry={entry}
-                      setViewEntry={setViewEntry}
-                      setEntryToEdit={setEntryToEdit}
-                      handleDelete={handleDelete}
-                      text={text}
-                      subtext={subtext}
-                      bgCard={bgCard}
-                    />
+                      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                      viewport={{ once: true, margin: "-50px" }}
+                      transition={{ duration: 0.5, delay: index * 0.05, ease: "easeOut" }}
+                    >
+                      <DiaryCard
+                        entry={entry}
+                        setViewEntry={setViewEntry}
+                        setEntryToEdit={setEntryToEdit}
+                        handleDelete={handleDelete}
+                        text={text}
+                        subtext={subtext}
+                        bgCard={bgCard}
+                      />
+                    </motion.div>
                   ))}
                 </div>
               </div>

@@ -3,14 +3,7 @@
   border: none;
   background: transparent;
   font-family: inherit;
-}
-
-.dark-calendar .react-calendar {
-  color: #e2e8f0;
-}
-
-.light-calendar .react-calendar {
-  color: #1e293b;
+  color: inherit;
 }
 
 .react-calendar__navigation button {
@@ -21,8 +14,16 @@
   margin-top: 8px;
 }
 
-.react-calendar__navigation button:enabled:hover,
-.react-calendar__navigation button:enabled:focus {
+/* Light theme hover */
+.custom-calendar-container:not(.dark) .react-calendar__navigation button:enabled:hover,
+.custom-calendar-container:not(.dark) .react-calendar__navigation button:enabled:focus {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+}
+
+/* Dark theme hover */
+.custom-calendar-container.dark .react-calendar__navigation button:enabled:hover,
+.custom-calendar-container.dark .react-calendar__navigation button:enabled:focus {
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
 }
@@ -32,9 +33,13 @@
   font-weight: 600;
   text-decoration: none;
   color: inherit;
-  opacity: 0.7;
+  opacity: 0.8;
   font-size: 0.85em;
   text-transform: uppercase;
+}
+
+.react-calendar__month-view__weekdays__weekday abbr[title] {
+  text-decoration: none;
 }
 
 
@@ -50,33 +55,68 @@
   color: inherit;
 }
 
-.react-calendar__tile:enabled:hover,
-.react-calendar__tile:enabled:focus {
-  background-color: rgba(6, 182, 212, 0.2);
-  color: #06b6d4;
+/* Light theme hover tile */
+.custom-calendar-container:not(.dark) .react-calendar__tile:enabled:hover,
+.custom-calendar-container:not(.dark) .react-calendar__tile:enabled:focus {
+  background-color: rgba(123, 63, 32, 0.1);
+  color: #7B3F20;
 }
 
-.react-calendar__tile--now {
+/* Dark theme hover tile */
+.custom-calendar-container.dark .react-calendar__tile:enabled:hover,
+.custom-calendar-container.dark .react-calendar__tile:enabled:focus {
+  background-color: rgba(201, 149, 106, 0.2);
+  color: #C9956A;
+}
+
+/* Light theme today */
+.custom-calendar-container:not(.dark) .react-calendar__tile--now {
   background: transparent;
-  color: #06b6d4;
+  color: #7B3F20;
   font-weight: bold;
-  border: 1px solid rgba(6, 182, 212, 0.4);
+  border: 1px solid rgba(123, 63, 32, 0.4);
 }
 
-.react-calendar__tile--now:enabled:hover,
-.react-calendar__tile--now:enabled:focus {
-  background-color: rgba(6, 182, 212, 0.2);
+.custom-calendar-container:not(.dark) .react-calendar__tile--now:enabled:hover,
+.custom-calendar-container:not(.dark) .react-calendar__tile--now:enabled:focus {
+  background-color: rgba(123, 63, 32, 0.1);
 }
 
-.react-calendar__tile--active {
-  background: #06b6d4 !important;
+/* Dark theme today */
+.custom-calendar-container.dark .react-calendar__tile--now {
+  background: transparent;
+  color: #C9956A;
+  font-weight: bold;
+  border: 1px solid rgba(201, 149, 106, 0.4);
+}
+
+.custom-calendar-container.dark .react-calendar__tile--now:enabled:hover,
+.custom-calendar-container.dark .react-calendar__tile--now:enabled:focus {
+  background-color: rgba(201, 149, 106, 0.2);
+}
+
+/* Light theme active */
+.custom-calendar-container:not(.dark) .react-calendar__tile--active {
+  background: #7B3F20 !important;
   color: white !important;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+  box-shadow: 0 4px 12px rgba(123, 63, 32, 0.4);
 }
 
-.react-calendar__tile--active:enabled:hover,
-.react-calendar__tile--active:enabled:focus {
-  background: #0891b2 !important;
+.custom-calendar-container:not(.dark) .react-calendar__tile--active:enabled:hover,
+.custom-calendar-container:not(.dark) .react-calendar__tile--active:enabled:focus {
+  background: #5C2E14 !important;
+}
+
+/* Dark theme active */
+.custom-calendar-container.dark .react-calendar__tile--active {
+  background: #C9956A !important;
+  color: #0D0D1A !important;
+  box-shadow: 0 4px 12px rgba(201, 149, 106, 0.4);
+}
+
+.custom-calendar-container.dark .react-calendar__tile--active:enabled:hover,
+.custom-calendar-container.dark .react-calendar__tile--active:enabled:focus {
+  background: #E8B86D !important;
 }
 
 .react-calendar__month-view__days__day--neighboringMonth {
