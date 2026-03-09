@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Lock, Unlock, Loader } from 'lucide-react';
+import { Lock, Unlock, Loader, X } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const UnlockModal = ({ onUnlock, error, isUnlocking }) => {
     const [password, setPassword] = useState('');
+    const navigate = useNavigate();
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -19,6 +20,15 @@ const UnlockModal = ({ onUnlock, error, isUnlocking }) => {
                 className="bg-[#1C1828] p-8 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.6)] max-w-md w-full mx-4 border border-[#2E2940] text-center relative overflow-hidden"
             >
                 <div className="absolute top-0 left-0 w-full h-1 bg-[#C9956A]" />
+
+                <button
+                    type="button"
+                    onClick={() => navigate('/')}
+                    className="absolute top-4 right-4 p-2 text-[#9B8EA0] hover:text-[#F0E6D3] hover:bg-white/5 rounded-full transition-colors z-10"
+                    title="Close"
+                >
+                    <X className="w-5 h-5" />
+                </button>
 
                 <div className="w-16 h-16 bg-[#C9956A]/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-[#C9956A]/20">
                     <Lock className="w-8 h-8 text-[#C9956A]" />
