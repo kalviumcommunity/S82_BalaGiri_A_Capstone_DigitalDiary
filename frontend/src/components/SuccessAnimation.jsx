@@ -17,20 +17,23 @@ const SuccessAnimation = ({ message, onClose }) => {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 100, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="fixed top-24 right-4 z-[60] bg-[#0f172a]/60 backdrop-blur-2xl border border-green-500/30 text-white px-8 py-5 rounded-2xl shadow-[0_10px_40px_-10px_rgba(74,222,128,0.3)] flex items-center space-x-4 overflow-hidden"
+                className="fixed top-24 right-4 z-[60] glass text-theme-text px-6 py-4 rounded-xl flex items-center shadow-theme overflow-hidden min-w-[300px] border-l-4"
+                style={{ borderLeftColor: 'var(--color-success)' }}
             >
-                <div className="absolute inset-0 bg-green-500/10" />
-                <div className="relative flex items-center space-x-3">
-                    <div className="bg-green-500/20 p-2 rounded-full">
-                        <CheckCircle className="w-6 h-6 text-green-400" />
+                <div className="absolute inset-0 bg-[var(--color-success)] opacity-[0.08]" />
+
+                <div className="relative flex items-center space-x-3 w-full">
+                    <div className="flex-shrink-0 flex items-center justify-center p-2 rounded-full bg-[var(--color-page-bg)] border border-theme-border shadow-sm">
+                        <CheckCircle className="w-5 h-5" style={{ color: 'var(--color-success)' }} />
                     </div>
-                    <span className="font-semibold text-lg tracking-wide">{message}</span>
+                    <span className="font-medium text-[15px] tracking-wide">{message}</span>
                 </div>
                 <motion.div
                     initial={{ width: "100%" }}
                     animate={{ width: "0%" }}
                     transition={{ duration: 3, ease: "linear" }}
-                    className="absolute bottom-0 left-0 h-1 bg-green-400/50"
+                    className="absolute bottom-0 left-0 h-[3px]"
+                    style={{ backgroundColor: 'var(--color-success)' }}
                 />
             </motion.div>
         </AnimatePresence>
