@@ -28,7 +28,7 @@ router.post(
 
 router.get('/latest', authenticateToken, async (req, res) => {
   try {
-    const latest = await DiaryEntry.find({ user: req.user.id }).sort({ date: -1 }).limit(3);
+    const latest = await DiaryEntry.find({ userId: req.user.id }).sort({ date: -1 }).limit(3);
     res.status(200).json(latest);
   } catch (err) {
     console.error('Fetch latest entries error:', err);

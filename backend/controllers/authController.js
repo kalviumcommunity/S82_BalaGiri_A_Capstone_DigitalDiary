@@ -139,15 +139,16 @@ exports.requestMagicLink = async (req, res) => {
     });
     await newMagicToken.save();
 
-    const frontendUrl = `http://localhost:5173/magic-login?token=${rawToken}`;
+    const frontendUrl = process.env.FRONTEND_URL || req.headers.origin || 'http://localhost:5173';
+    const magicLinkUrl = `${frontendUrl}/magic-login?token=${rawToken}`;
 
-    await sendMagicLinkEmail(user.email, frontendUrl);
+    await sendMagicLinkEmail(user.email, magicLinkUrl);
 
     res.status(200).json({ message: 'Magic link sent to email' });
 
   } catch (err) {
     console.error('[Auth] Error:', err);
-    res.status(500).json({ message: 'Error sending magic link.' });
+    res.status(500).json({ message: err.message || 'Error sending magic link.' });
   }
 };
 
