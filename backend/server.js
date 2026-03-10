@@ -9,7 +9,7 @@ const diaryRoutes = require('./routes/diaryRoutes');
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://digitaldiary-app.netlify.app'],
   credentials: true
 }));
 app.use(express.json());
